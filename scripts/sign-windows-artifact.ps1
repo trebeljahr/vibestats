@@ -10,7 +10,7 @@ Invoke-TrustedSigning -Endpoint 'https://weu.codesigning.azure.net/' `
     -CertificateProfileName 'ricoslabs-public' `
     -Files $file.FullName -FileDigest SHA256 `
     -TimestampRfc3161 'http://timestamp.acs.microsoft.com' -TimestampDigest SHA256 `
-    -ExcludeEnvironmentCredential $true -ExcludeAzureCliCredential $false
+    -ExcludeEnvironmentCredential:$true -ExcludeAzureCliCredential:$false
 
 # Tauri restores the original unpatched executable after bundling. Preserve
 # the signed, patched copy for comparison with the MSI and artifact upload.
