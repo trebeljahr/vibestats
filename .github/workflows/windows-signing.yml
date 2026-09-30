@@ -1,0 +1,82 @@
+name: Verify Windows signing
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-signing
+  cancel-in-progress: false
+
+jobs:
+  signed-windows:
+    if: github.repository == 'trebeljahr/vibestats' && github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Generate platform icons
+        run: npx --no-install tauri icon src-tauri/icons/icon.svg
+      - name: Build app before packaging
+        run: npx --no-install tauri build --no-bundle
+      - name: Authenticate dedicated signing identity
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
+        with:
+          client-id: c5a8db78-22b3-497e-835a-10236fda8661
+          tenant-id: ce0c906e-8a84-4877-afd9-cdf103ddaacb
+          subscription-id: 4aaef5a5-286b-46a0-b9e4-84622e8fdc4f
+      - name: Sign app before it enters the installer
+        uses: azure/artifact-signing-action@b443cf8ea4124818d2ea9f043cba29fc3ec47b16 # v1
+        with:
+          endpoint: https://weu.codesigning.azure.net/
+          signing-account-name: ricoslabs-signing
+          certificate-profile-name: ricoslabs-public
+          files: ${{ github.workspace }}\src-tauri\target\release\vibestats.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          exclude-environment-credential: true
+          exclude-azure-cli-credential: false
+      - name: Package signed app
+        run: npx --no-install tauri bundle --bundles msi
+      - name: Sign MSI
+        uses: azure/artifact-signing-action@b443cf8ea4124818d2ea9f043cba29fc3ec47b16 # v1
+        with:
+          endpoint: https://weu.codesigning.azure.net/
+          signing-account-name: ricoslabs-signing
+          certificate-profile-name: ricoslabs-public
+          files-folder: ${{ github.workspace }}\src-tauri\target\release\bundle\msi
+          files-folder-filter: msi
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          exclude-environment-credential: true
+          exclude-azure-cli-credential: false
+      - name: Verify publisher and embedded app
+        run: ./scripts/verify-windows-signatures.ps1
+      - name: Upload verified build and signature evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: vibestats-windows-signed-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            src-tauri/target/release/vibestats.exe
+            src-tauri/target/release/bundle/msi/*.msi
+            windows-signatures.json
