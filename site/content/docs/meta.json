@@ -1,0 +1,13 @@
+{
+  "title": "Docs",
+  "pages": [
+    "getting-started",
+    "pricing-and-value-multiple",
+    "cache-metrics",
+    "data-sources",
+    "project-aliases",
+    "snapshots-and-refresh",
+    "deploying-and-sharing",
+    "troubleshooting"
+  ]
+}

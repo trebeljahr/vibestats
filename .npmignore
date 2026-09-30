@@ -1,0 +1,49 @@
+# Excluded from the npm tarball even though they live under paths the
+# `files` whitelist in package.json otherwise grabs. release-prep.mjs
+# enforces these patterns aren't present in `npm pack --dry-run` output.
+
+src-tauri/icons/icon.iconset/
+src-tauri/icons/*.iconset/
+
+# Belt-and-suspenders against user data ever leaking via the package
+snapshots/
+data/
+dashboard.html
+codex-dashboard.html
+combined-dashboard.html
+claude-web-dashboard.html
+gemini-dashboard.html
+goose-dashboard.html
+cline-dashboard.html
+redacted-*.html
+pricing.json
+pricing-cache.json
+project-aliases.json
+.claude-stats-config.json
+
+# Tauri build outputs
+src-tauri/target/
+src-tauri/gen/
+
+# Private usage state and local credentials, including new tool formats.
+pending-merges.json
+cwd-manifest*.json
+*.jsonl
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+private/
+exports/
+.git.bak*/
+*.bundle
+# Only explicitly synthetic transcript fixtures belong in source control.
+!fixtures/snapshot-fixture/snapshots/2026-01-01/projects/-tmp-test-myproj/*.jsonl
+!fixtures/snapshot-with-secret/snapshots/2026-01-01/projects/-tmp-test-myproj/*.jsonl
+# Historical usage-derived media stays local.
+site/public/screenshot.png

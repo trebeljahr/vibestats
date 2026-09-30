@@ -1,0 +1,98 @@
+---
+title: Merging Renamed and Duplicate Projects
+description: Use project-aliases.json to consolidate split rows when a project was renamed, moved between paths, or is reachable from multiple cwds.
+---
+
+`project-aliases.json` tells the dashboard to treat several Claude Code project directories as one row in the projects table. Edit it whenever a single conceptual project ended up under more than one path.
+
+## Why this matters
+
+Claude Code keys projects by the encoded **current working directory** of the session, not by repo identity. So if you rename `/Users/example/projects/old` to `/Users/example/projects/new` partway through development, the CLI writes new transcripts to a different directory and your dashboard ends up with two rows for what is really the same project — split sessions, split tokens, split streaks.
+
+The same happens if you check the repo out at a second path (laptop vs. desktop, `~/work/` vs. `~/projects/`), or if a monorepo gets accessed from several worktree locations that aren't the canonical `claude-worktrees/` subdir.
+
+The fix is a small JSON file that collapses the rows back into one.
+
+## The dir-name encoding
+
+The keys in `project-aliases.json` match the directory names Claude Code uses under `~/.claude/projects/`. The encoding is mechanical:
+
+- Take the absolute path of the project's cwd.
+- Replace every `/` with `-`.
+- The result starts with a leading dash (because the path started with `/`).
+
+So `/Users/example/projects/foo` becomes `-Users-rico-projects-foo`. You can confirm by running `ls ~/.claude/projects/ | grep foo`.
+
+**Worktree suffixes are stripped before matching.** A directory like `-Users-rico-projects-foo--claude-worktrees-bar-abc123` is treated as `-Users-rico-projects-foo` by the dashboard's grouping logic, so you only need to list base project dirs in your aliases — not every worktree under them.
+
+## File shape
+
+`project-aliases.json` lives next to `pricing.json` at the repo root. Seed it from the example on first run, then add entries:
+
+```json
+{
+  "aliases": {
+    "foo": [
+      "-Users-rico-projects-old-foo",
+      "-Users-rico-projects-foo"
+    ],
+    "internal-tool": [
+      "-Users-rico-work-internal-tool",
+      "-Users-rico-projects-internal-tool"
+    ]
+  }
+}
+```
+
+The **canonical name** (the JSON key) is what shows up in the projects table. It's an arbitrary label — pick whatever reads well. Each value is the list of encoded dir names that should be folded into that row.
+
+If `project-aliases.json` is missing the build falls back to `{ "aliases": {} }` and every directory becomes its own row, which is the right default.
+
+## Common scenarios
+
+- **Rename mid-development.** You moved `~/projects/spike` to `~/projects/launchpad` once the spike turned into a real project. Alias both encodings under `"launchpad"`.
+- **Same repo on two machines or two paths.** A laptop has the repo at `~/projects/x`, the desktop at `~/code/x`. After syncing snapshots, alias both under one canonical name.
+- **Moved between disks.** Old work lives at `/Volumes/external/projects/y`; current work at `/Users/example/projects/y`. Same fix.
+- **Monorepo accessed from multiple worktrees that aren't under `claude-worktrees/`.** The automatic worktree-stripping only covers the conventional `--claude-worktrees-` suffix. If you set up extra worktrees elsewhere, alias their dir names back to the base.
+
+## What gets merged
+
+The dashboard builders apply aliases when grouping rows. For every aliased project, these are summed across the source dirs:
+
+- Sessions, messages, tokens, and computed cost
+- Active-days set (so streaks reflect the union, not one dir at a time)
+- Date ranges (first / last seen)
+- Worktree count — the merged row reports the total worktree count across **all** aliased dirs, not just the canonical one
+
+The merge happens at build time from the raw snapshot data; no fields are renamed in `~/.claude/projects/` and no transcripts are touched.
+
+## Iterating
+
+After editing `project-aliases.json`, rebuild — no new snapshot needed, since the raw transcripts haven't changed:
+
+```bash
+./scripts/build-all.sh
+```
+
+That regenerates `dashboard.html`, `codex-dashboard.html`, and `combined-dashboard.html` with the new groupings. If a row didn't merge the way you expected, double-check the dir names against `ls ~/.claude/projects/` — a single character off (missing dash, wrong casing) will silently fall through to "no match" and the row stays split.
+
+See [Building the Dashboard](./build-pipeline) for what the build script does, and [Pricing Model](./pricing-model) for the other config file you may want to edit.
+
+## Anonymization
+
+The same mechanism doubles as a redaction step before publishing a dashboard. The default row label is the project's directory name, which leaks real paths and project names. Map them to harmless labels:
+
+```json
+{
+  "aliases": {
+    "project-a": ["-Users-rico-projects-acme-internal"],
+    "project-b": ["-Users-rico-clients-bigcorp-portal"],
+    "project-c": [
+      "-Users-rico-projects-side-thing",
+      "-Users-rico-old-side-thing"
+    ]
+  }
+}
+```
+
+Each canonical key collapses to one row labeled `project-a`, `project-b`, etc. The original dir names never appear in the rendered HTML. Combine with care — the dashboard still embeds raw timestamps and token counts in the inlined JSON; see the deploying notes in the [README](https://github.com/) before putting it on the public internet.

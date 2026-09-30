@@ -1,0 +1,80 @@
+{
+  "summary": {
+    "snapshot": "2026-01-01",
+    "generatedAt": "2026-01-01T12:00:00.000Z",
+    "firstDay": "2026-01-01",
+    "lastDay": "2026-01-01",
+    "totalSessionsAllTime": 1,
+    "homePrefix": "-home-demo",
+    "unknownModels": [],
+    "pendingMergesCount": 0,
+    "live": false
+  },
+  "heatmap": [
+    {
+      "day": "2026-01-01",
+      "sessions": 1,
+      "messages": 2,
+      "locAdditions": 0,
+      "locDeletions": 0,
+      "byModel": [
+        {
+          "model": "example-model",
+          "tool": "claude",
+          "messages": 2,
+          "input": 100,
+          "output": 50,
+          "cacheRead": 0,
+          "cacheCreate5m": 0,
+          "cacheCreate1h": 0
+        }
+      ],
+      "byProject": [
+        {
+          "name": "demo-project",
+          "tool": "claude",
+          "sessions": 1,
+          "messages": 2,
+          "tokens": 150
+        }
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "demo-project",
+      "sessions": 1,
+      "messages": 2,
+      "tokens": 150,
+      "days": [
+        "2026-01-01"
+      ],
+      "archived": false,
+      "worktrees": 0,
+      "mergedFrom": [],
+      "tools": "claude"
+    }
+  ],
+  "pricing": {
+    "models": {
+      "example-model": {
+        "input": 0,
+        "output": 0,
+        "cache_read": 0,
+        "cache_5m": 0,
+        "cache_1h": 0
+      }
+    },
+    "openai_models": {},
+    "subscription": {
+      "tier": "Fictional example",
+      "monthly_usd": 0,
+      "started": "2026-01-01"
+    },
+    "codex_subscription": {
+      "tier": "Fictional example",
+      "monthly_usd": 0,
+      "started": "2026-01-01"
+    }
+  }
+}

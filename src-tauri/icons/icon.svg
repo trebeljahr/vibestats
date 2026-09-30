@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" rx="180" fill="#0d1117"/>
+  <!-- ascending bar chart in GH heatmap green palette -->
+  <rect x="140" y="640" width="140" height="244" rx="20" fill="#0e4429"/>
+  <rect x="320" y="500" width="140" height="384" rx="20" fill="#006d32"/>
+  <rect x="500" y="340" width="140" height="544" rx="20" fill="#26a641"/>
+  <rect x="680" y="160" width="140" height="724" rx="20" fill="#39d353"/>
+</svg>

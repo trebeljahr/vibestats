@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vibestats</title>
+<style>
+  body { margin: 0; background: #0d1117; color: #e6edf3; font: 14px/1.5 -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+  h1 { font-size: 28px; margin: 0 0 8px; }
+  p { color: #7d8590; margin: 4px 0; }
+  .spinner { width: 32px; height: 32px; border: 3px solid #30363d; border-top-color: #39d353; border-radius: 50%; animation: spin 1s linear infinite; margin-top: 24px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .log { margin-top: 24px; max-height: 240px; overflow: auto; font: 11px monospace; color: #7d8590; padding: 12px; background: #161b22; border-radius: 6px; min-width: 480px; max-width: 80%; white-space: pre-wrap; }
+  .err { color: #ff6b6b; }
+</style>
+</head>
+<body>
+<h1>Vibestats</h1>
+<p id="status">Preparing your dashboard…</p>
+<div class="spinner" id="spinner"></div>
+<div class="log" id="log"></div>
+<script>
+async function main() {
+  const status = document.getElementById('status');
+  const log = document.getElementById('log');
+  const spinner = document.getElementById('spinner');
+  function appendLog(s, cls) {
+    const span = document.createElement('span');
+    if (cls) span.className = cls;
+    span.textContent = s + "\n";
+    log.appendChild(span);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  if (!window.__TAURI__) {
+    status.textContent = "Not running inside Tauri";
+    appendLog("This page is meant to load inside the Vibestats desktop app.", "err");
+    spinner.style.display = "none";
+    return;
+  }
+
+  const { invoke, convertFileSrc } = window.__TAURI__.core;
+
+  try {
+    status.textContent = "Building dashboards from your latest sessions…";
+    appendLog("> vibestats build --live (reads ~/.claude, ~/.codex, ~/.gemini in place)");
+    appendLog("  For a dated archive copy, use the tray menu's \"Snapshot + Rebuild\".");
+    const result = await invoke('prepare_dashboard');
+    appendLog(result);
+
+    status.textContent = "Loading dashboard…";
+    const fsPath = await invoke('dashboard_path');
+    appendLog("→ " + fsPath);
+    const url = convertFileSrc(fsPath);
+    appendLog("→ " + url);
+    window.location.replace(url);
+  } catch (e) {
+    spinner.style.display = "none";
+    status.textContent = "Error";
+    appendLog(String(e), "err");
+  }
+}
+main();
+</script>
+</body>
+</html>

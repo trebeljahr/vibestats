@@ -1,0 +1,131 @@
+---
+title: Pricing Model and Value Multiple
+description: How API cost, subscription prorating, and the value multiple are computed — every formula, every input, every known caveat.
+---
+
+The dashboard's headline number is the **value multiple**: how much your usage would have cost on pay-as-you-go API rates, divided by how much subscription money you've actually paid out over the same window. A multiple of `3.2×` means you've extracted three times the dollar value of your subscription. This page walks through exactly how that number is built so you can trust it, tune it, or argue with it.
+
+All math happens client-side in `dashboard-template.html` using the contents of `pricing.json`. Nothing is fetched at view time — the prices, your subscription tier, and your token counts are all baked into the HTML at build time.
+
+## The pricing.json shape
+
+Two top-level dictionaries hold per-million-token rates, plus two subscription blocks and a fast-mode flag:
+
+```json
+{
+  "models": {
+    "claude-opus-4-7":   { "input": 5, "cache_5m": 6.25, "cache_1h": 10, "cache_read": 0.50, "output": 25 },
+    "claude-sonnet-4-6": { "input": 3, "cache_5m": 3.75, "cache_1h": 6,  "cache_read": 0.30, "output": 15 },
+    "claude-haiku-4-5":  { "input": 1, "cache_5m": 1.25, "cache_1h": 2,  "cache_read": 0.10, "output": 5 }
+  },
+  "openai_models": {
+    "gpt-5":       { "input": 1.25, "cache_read": 0.125, "cache_5m": 0, "cache_1h": 0, "output": 10 },
+    "gpt-5-codex": { "input": 1.75, "cache_read": 0.175, "cache_5m": 0, "cache_1h": 0, "output": 14 }
+  },
+  "subscription":       { "tier": "Max 20x",     "monthly_usd": 200, "started": "2026-01-01" },
+  "codex_subscription": { "tier": "ChatGPT Plus", "monthly_usd": 20,  "started": "2026-01-01" },
+  "fastModeMultiplier": { "value": 1 }
+}
+```
+
+Every model has the same five fields. They are billed separately because the Anthropic API charges separately for each, and the dashboard preserves that breakdown end-to-end.
+
+| Field | Meaning | Typical Anthropic multiplier vs `input` |
+| --- | --- | --- |
+| `input` | Fresh prompt tokens — uncached | 1× (baseline) |
+| `output` | Tokens the model generated | 5× |
+| `cache_5m` | Wrote a cache entry with a 5-minute TTL | 1.25× |
+| `cache_1h` | Wrote a cache entry with a 1-hour TTL | 2× |
+| `cache_read` | Hit an existing cache entry on a subsequent call | 0.1× |
+
+OpenAI doesn't charge for cache writes, so the `cache_5m` and `cache_1h` columns are zero for `openai_models`. The dashboard still tracks them as zero-weighted line items rather than hiding them, so the same code path works for both providers. See [Prompt Cache Metrics Explained](./cache-metrics) for why `cache_read` tokens usually dominate the token count without dominating the bill.
+
+## How API cost is summed per message
+
+Each model call in a session jsonl exposes a `usage` block with the five token counts. For one usage block, the dashboard does:
+
+```js
+function usageCost(model, u) {
+  const p = PRICING.models[model];
+  if (!p) return 0;
+  return (
+    u.input         * p.input +
+    u.output        * p.output +
+    u.cacheRead     * p.cache_read +
+    u.cacheCreate5m * p.cache_5m +
+    u.cacheCreate1h * p.cache_1h
+  ) / 1e6;
+}
+```
+
+That's it — multiply each token count by its corresponding per-MTok rate and divide by one million. The same function is used by both `build-dashboard.js` (Claude Code), `build-codex-dashboard.js` (Codex), and `build-combined-dashboard.js`. If a model name in your jsonl doesn't appear in `pricing.json.models`, cost falls to `0` and the model name shows up in `summary.unknownModels` so you know to add a rate.
+
+Day cost is the sum of `usageCost` over every model used that day. Filtered-range cost is the sum over every day in the active filter. The "API cost (would-be)" headline number is that filtered total.
+
+## Subscription prorating
+
+The subscription cost shown next to the value multiple is **not** the full monthly fee. It's the slice of your subscription that elapsed between your start date and the last active day in the filtered range:
+
+```js
+function subscriptionPaidUntil(throughDay) {
+  const start = new Date(PRICING.subscription.started + 'T00:00:00Z');
+  const end   = throughDay ? new Date(throughDay + 'T00:00:00Z') : new Date();
+  const months = Math.max(0, (end - start) / (1000 * 60 * 60 * 24 * 30.44));
+  return months * PRICING.subscription.monthly_usd;
+}
+```
+
+A few specifics worth knowing:
+
+- `30.44` is the average days-per-month over a year; the dashboard treats months as continuous, not calendar-aligned. A 45-day window from a `$200/mo` plan shows `$295.66` paid, not `$200` or `$400`.
+- `throughDay` is the **last active day in the filter**, not today. If you filter to "this month" but haven't coded for the past week, the subscription paid number stops accumulating on your last active day. This keeps the multiple honest when comparing recent vs older windows.
+- `started` matters. If you set it earlier than your real start, the dashboard will think you've paid for more time than you have and the multiple will look worse than reality. If you set it later, the opposite.
+
+## Value multiple formula
+
+```js
+const subCost  = subscriptionPaidUntil(lastDay);
+const multiple = subCost > 0 ? f.cost / subCost : 0;
+```
+
+`f.cost` is the filtered API cost; `subCost` is the prorated subscription paid through the last active day in the filter.
+
+- **`multiple > 1`** — you're getting more API value than the prorated subscription cost. Higher is better.
+- **`multiple = 1`** — you're break-even. A pay-as-you-go user with the exact same usage would have paid the same.
+- **`multiple < 1`** — your usage in this window doesn't justify the prorated subscription. This is normal for short, idle windows; less normal for "all time" if your subscription has been running for months.
+
+Changing the time-range filter changes both halves of the ratio. A 7-day filter only counts the API value of the last 7 days, but it also only counts 7 days of prorated subscription (`~$46` of a `$200/mo` plan). The multiple is therefore comparable across filters — it's an intensity measure, not an accumulation measure.
+
+## Configuring multiple tiers
+
+Most people pay for both an Anthropic and an OpenAI / Codex subscription. `pricing.json` has two separate blocks:
+
+```json
+{
+  "subscription":       { "tier": "Max 20x",     "monthly_usd": 200, "started": "2026-01-01" },
+  "codex_subscription": { "tier": "ChatGPT Plus", "monthly_usd": 20,  "started": "2026-01-01" }
+}
+```
+
+- The Claude-only dashboard (`dashboard.html`) reads `subscription`.
+- The Codex-only dashboard (`codex-dashboard.html`) reads `codex_subscription`.
+- The combined dashboard (`combined-dashboard.html`) sums `monthly_usd` across both blocks, joins the tier names with `" + "`, and uses the **earliest** `started` date. So `Max 20x + ChatGPT Plus @ $220/mo, started 2026-01-01`.
+
+If you pay-as-you-go for one of them, set its `monthly_usd` to `0`. The subscription paid for that tool will stay at zero, and its API cost will all be "wins" against an effectively free subscription. The value multiple becomes meaningless in that case — read the raw API cost number instead.
+
+The `started` date is straightforward: the day you first paid for the tier. If you upgraded mid-month from one plan to another, picking the upgrade date and the new tier price is usually closer to reality than averaging. The dashboard has no concept of plan changes over time.
+
+## Known undercounting
+
+The "API cost (would-be)" number is a lower bound. Two known sources of undercount:
+
+1. **Fast-mode Opus premium**. Anthropic's fast mode (Opus 4.6 / 4.7) bills at `$30/MTok` input and `$150/MTok` output — six times the standard `$5 / $25` rates. The jsonl doesn't expose a `fast: true` flag, so the dashboard can't distinguish fast from standard calls. The `fastModeMultiplier.value` field in `pricing.json` exists for this but defaults to `1` (i.e. off) precisely because applying it uniformly would over-correct for anyone not using fast mode all the time. If you know you're a heavy fast-mode user, bumping the Opus model rates in `pricing.json` is the most honest knob.
+2. **Server-tool charges**. Web search runs at `$10 / 1k` queries; code execution bills runtime separately. Neither shows up as token usage in the jsonl, so neither shows up in the dashboard's cost number. If you lean on web search or code execution, your real API bill would be meaningfully higher than the dashboard claims.
+
+Both undercounts push the same direction: your true would-be API cost is **higher** than the dashboard reports, so your real value multiple is **higher** than the headline number. The number is conservative on purpose — better to under-claim the value of the subscription than to make claims the jsonl can't support.
+
+## Related
+
+- [Prompt Cache Metrics Explained](./cache-metrics) — how the three cache columns behave and why `cache_read` is the cheapest token class
+- [Snapshots and Refresh](./snapshots-and-refresh) — how the underlying jsonl gets ingested and re-aggregated
+- [Troubleshooting](./troubleshooting) — what to do when the multiple looks wrong or a model is showing `$0`

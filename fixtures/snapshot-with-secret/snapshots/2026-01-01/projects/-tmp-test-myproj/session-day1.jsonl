@@ -1,0 +1,3 @@
+{"type":"summary","summary":"Refactor parser","leafUuid":"f2-leaf-0001"}
+{"type":"user","uuid":"f2-u-0001","timestamp":"2026-01-01T09:00:00.000Z","sessionId":"sec-sess-day1","cwd":"/tmp/test-myproj","message":{"role":"user","content":"Set GH_TOKEN=ghp_FAKE0000000000000000000000000000000000 (intentionally planted for CI negative-test of scripts/redact.js --check; not a real credential)"}}
+{"type":"assistant","uuid":"f2-a-0001","timestamp":"2026-01-01T09:00:04.000Z","sessionId":"sec-sess-day1","message":{"id":"msg_sec_001","role":"assistant","model":"claude-sonnet-4-5","content":[{"type":"text","text":"Refusing to echo a token."}],"usage":{"input_tokens":40,"output_tokens":8,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}

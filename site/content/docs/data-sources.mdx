@@ -1,0 +1,100 @@
+---
+title: Data Sources
+description: Where every number on the dashboard comes from — Claude Code transcripts, Codex rollouts, and optional claude.ai web chats.
+---
+
+The dashboard is a read-only aggregator. It never modifies the source directories; it rsyncs them into a dated `snapshots/<date>/` folder and reads from there. This page explains exactly which files are read for each tool, and how to wire up the optional claude.ai web fetcher.
+
+Missing directories are silently skipped, so the build works whether you use one tool or all of them.
+
+## Claude Code
+
+Two directories are read:
+
+- `~/.claude/projects/` — the active project transcripts the CLI currently knows about.
+- `~/.claude/projects-archive/` — older project directories that the CLI has auto-archived.
+
+The second one is the reason this dashboard exists. The built-in `/stats` widget only looks at the active directory, so anything Claude has moved into the archive is invisible there — but the cost and token counts are real and belong in the totals. The aggregator merges both into one view.
+
+Each project directory contains JSONL transcripts; messages are grouped into sessions by file, and per-message `usage` blocks (input, output, cache reads, 5m/1h cache writes) feed directly into the cost model. See [Pricing Model](./pricing-model) for how those numbers become dollars.
+
+## Codex
+
+One directory is read:
+
+- `~/.codex/archived_sessions/` — Codex rollout JSONL, one file per session.
+
+The 3 GB `~/.codex/logs_2.sqlite` debug log is intentionally skipped. It's a noisy internal log of every IPC event, not a usage record, and parsing it would add a huge dependency for no gain — the archived JSONL already has the per-message token counts.
+
+Worktree cwds are tracked from `.codex/worktrees` entries so that work done inside a git worktree rolls up under the original project name.
+
+## claude.ai web chats (optional)
+
+The web chat history isn't on disk locally — Claude Desktop is a wrapper around the website, and the conversations live behind the Claude API. To include them you need to give the fetcher a session cookie.
+
+### Getting the sessionKey
+
+1. Open `claude.ai` in a browser, logged in.
+2. Open DevTools, switch to the **Application** tab.
+3. Expand **Cookies** in the left sidebar, click `https://claude.ai`.
+4. Find the cookie named `sessionKey`. The value starts with `sk-ant-sid01-`.
+5. Copy the value.
+
+Treat it like a password — it grants full access to your Claude account. The cookie expires periodically; if the fetcher starts returning 401s you'll need to grab a fresh one.
+
+### Providing the key
+
+Two ways, either works:
+
+```bash
+# Option 1: environment variable
+export CLAUDE_SESSION_KEY=sk-ant-sid01-...
+```
+
+```json
+// Option 2: ~/.claude-stats-config.json (chmod 600 recommended)
+{
+  "session_key": "sk-ant-sid01-..."
+}
+```
+
+The env var takes precedence if both are set.
+
+### Running the fetcher
+
+```bash
+node scripts/fetch-claude-web.js
+./scripts/build-all.sh
+```
+
+What gets downloaded:
+
+- The list of organizations on the account (`_orgs.json`).
+- For each org, one JSON file per conversation containing the full message history.
+
+Files land in `snapshots/<today>/claude-web/<org-uuid>/<conversation-uuid>.json`. The script is resumable — already-downloaded conversation UUIDs are skipped on subsequent runs — so a partial run isn't lost.
+
+Rate-limit behavior is intentionally conservative: a 150 ms delay between conversation fetches. There's no exponential backoff; if the API returns a non-2xx the script throws and exits, which is the right behavior for a stale cookie or an unexpected schema change.
+
+### Token estimation
+
+The web API does not return per-message token counts. Cost has to be estimated from message count, using a simple heuristic:
+
+- **1200 input tokens per message**
+- **600 output tokens per message**
+
+Both constants are defined at the top of `scripts/build-claude-web-dashboard.js` as `AVG_INPUT_PER_MSG` and `AVG_OUTPUT_PER_MSG`. If your web-chat conversations are noticeably longer or shorter than that average, edit the file and rebuild. The heuristic is deliberately not a config option — it's a guess, not a measurement, and surfacing it as a knob would imply more precision than there is.
+
+## Gemini Antigravity
+
+The snapshot rsync also captures `~/.gemini/antigravity/conversations/`. These files are protobuf-encoded without a bundled `.proto` definition, so there's no parser yet — the data is collected for safekeeping and will become countable in a future release. Antigravity totals do not currently appear on the dashboard.
+
+## What feeds which dashboard
+
+| Source | `dashboard.html` | `codex-dashboard.html` | `claude-web-dashboard.html` | `combined-dashboard.html` |
+| --- | --- | --- | --- | --- |
+| `~/.claude/projects` + archive | yes | — | — | yes |
+| `~/.codex/archived_sessions` | — | yes | — | yes |
+| `snapshots/<date>/claude-web/` | — | — | yes | yes |
+
+See also: [Pricing Model](./pricing-model), [Project Aliases](./project-aliases).

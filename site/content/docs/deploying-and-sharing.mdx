@@ -1,0 +1,16 @@
+---
+title: Keeping Usage Data Private
+description: Keep personal history local and share only reviewed dashboard exports.
+---
+
+Vibestats stores personal data in `~/.vibestats` for new installations. An existing source checkout with `pricing.json` continues using that checkout. `VIBESTATS_DATA_DIR` overrides both. Upgrading does not move or delete existing data.
+
+Keep snapshots, aggregates, configuration and generated dashboards out of Git. They may contain prompts, credentials pasted into conversations, private repository names and exact activity dates. Git ignore rules do not remove files from earlier commits.
+
+The local server serves only known dashboard HTML files on loopback. It does not serve snapshots or configuration. Dashboards themselves still contain private usage data.
+
+To prepare a dashboard for sharing, run `vibestats redact`. For coarser dates, use `vibestats redact --coarsen-dates=month`. A failed command means no new reviewed export is ready; old redacted files may be stale.
+
+Review the generated files before sharing. Project names are pseudonymized, but usage totals, costs and model names remain. Redaction is not a guarantee of anonymity. Never deploy the data directory or repository root. Copy only individually reviewed HTML files into a new, otherwise empty directory and use an authenticated host.
+
+The public demonstration uses fictional data. It never reads your local history.

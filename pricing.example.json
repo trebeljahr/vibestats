@@ -1,0 +1,50 @@
+{
+  "_comment": "Example pricing config. Copy to pricing.json and edit subscription details to match your real plan. Model prices are sourced from public pricing pages as of 2026-05.",
+  "models": {
+    "claude-opus-4-8":   { "input": 5,    "cache_5m": 6.25,  "cache_1h": 10,   "cache_read": 0.50, "output": 25 },
+    "claude-opus-4-7":   { "input": 5,    "cache_5m": 6.25,  "cache_1h": 10,   "cache_read": 0.50, "output": 25 },
+    "claude-opus-4-6":   { "input": 5,    "cache_5m": 6.25,  "cache_1h": 10,   "cache_read": 0.50, "output": 25 },
+    "claude-opus-4-5":   { "input": 5,    "cache_5m": 6.25,  "cache_1h": 10,   "cache_read": 0.50, "output": 25 },
+    "claude-opus-4-1":   { "input": 15,   "cache_5m": 18.75, "cache_1h": 30,   "cache_read": 1.50, "output": 75 },
+    "claude-opus-4":     { "input": 15,   "cache_5m": 18.75, "cache_1h": 30,   "cache_read": 1.50, "output": 75 },
+    "claude-sonnet-4-6": { "input": 3,    "cache_5m": 3.75,  "cache_1h": 6,    "cache_read": 0.30, "output": 15 },
+    "claude-sonnet-4-5": { "input": 3,    "cache_5m": 3.75,  "cache_1h": 6,    "cache_read": 0.30, "output": 15 },
+    "claude-sonnet-4":   { "input": 3,    "cache_5m": 3.75,  "cache_1h": 6,    "cache_read": 0.30, "output": 15 },
+    "claude-haiku-4-5":  { "input": 1,    "cache_5m": 1.25,  "cache_1h": 2,    "cache_read": 0.10, "output": 5 },
+    "claude-haiku-4-5-20251001": { "input": 1, "cache_5m": 1.25, "cache_1h": 2, "cache_read": 0.10, "output": 5 },
+    "claude-haiku-3-5":  { "input": 0.80, "cache_5m": 1,     "cache_1h": 1.60, "cache_read": 0.08, "output": 4 },
+    "<synthetic>":       { "input": 0,    "cache_5m": 0,     "cache_1h": 0,    "cache_read": 0,    "output": 0 }
+  },
+  "openai_models": {
+    "gpt-5.5":      { "input": 5,    "cache_read": 0.50,  "cache_5m": 0, "cache_1h": 0, "output": 30 },
+    "gpt-5.4":      { "input": 2.5,  "cache_read": 0.25,  "cache_5m": 0, "cache_1h": 0, "output": 15 },
+    "gpt-5":        { "input": 1.25, "cache_read": 0.125, "cache_5m": 0, "cache_1h": 0, "output": 10 },
+    "gpt-5-codex":  { "input": 1.75, "cache_read": 0.175, "cache_5m": 0, "cache_1h": 0, "output": 14 }
+  },
+  "gemini_models": {
+    "_comment": "Gemini CLI doesn't expose token counts in local logs — cost stays 0 until that lands upstream. Entries exist so model names render in the per-day breakdown.",
+    "gemini-3-pro":          { "input": 0, "cache_read": 0, "cache_5m": 0, "cache_1h": 0, "output": 0 },
+    "gemini-3-flash":        { "input": 0, "cache_read": 0, "cache_5m": 0, "cache_1h": 0, "output": 0 },
+    "gemini-3-flash-preview": { "input": 0, "cache_read": 0, "cache_5m": 0, "cache_1h": 0, "output": 0 },
+    "gemini-2.5-pro":        { "input": 0, "cache_read": 0, "cache_5m": 0, "cache_1h": 0, "output": 0 },
+    "gemini-2.5-flash":      { "input": 0, "cache_read": 0, "cache_5m": 0, "cache_1h": 0, "output": 0 }
+  },
+  "subscription": {
+    "_comment": "EDIT THIS to match your actual plan. Common Claude tiers: Pro $17/mo, Max 5x $100/mo, Max 20x $200/mo. The _autoDetected:true flag lets detect-subscription overwrite these placeholders on first snapshot with values inferred from your real token usage. Removing _autoDetected (or setting it to false) makes your edits sticky.",
+    "_autoDetected": true,
+    "tier": "Max 20x",
+    "monthly_usd": 200,
+    "started": "2026-01-01"
+  },
+  "codex_subscription": {
+    "_comment": "Codex / ChatGPT plan that includes Codex Desktop access. ChatGPT Plus $20, Pro $200. Adjust or set monthly_usd to 0 if you use API directly. Same _autoDetected behaviour as the Claude block above.",
+    "_autoDetected": true,
+    "tier": "ChatGPT Plus",
+    "monthly_usd": 20,
+    "started": "2026-01-01"
+  },
+  "fastModeMultiplier": {
+    "_comment": "Fast mode (Opus 4.6/4.7) bills input at $30/MTok, output at $150/MTok — i.e. 6x base. Not currently applied because we cannot distinguish fast vs standard from jsonl. Set to 1 to ignore.",
+    "value": 1
+  }
+}

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vibestats — Settings</title>
+<style>
+  :root {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #7d8590; --card: #161b22; --border: #30363d;
+    --accent: #58a6ff; --ok: #39d353; --err: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 -apple-system, system-ui, sans-serif; padding: 28px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 13px; margin: 24px 0 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  p.lead { color: var(--muted); margin: 0 0 16px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; }
+  .row { display: grid; grid-template-columns: 140px 1fr; gap: 12px; align-items: center; margin: 10px 0; }
+  label { color: var(--muted); font-size: 13px; }
+  input, select { background: #0d1117; color: var(--fg); border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; font: inherit; width: 100%; }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  .actions { display: flex; gap: 10px; align-items: center; margin-top: 22px; }
+  button { background: var(--card); color: var(--fg); border: 1px solid var(--border); padding: 8px 16px; border-radius: 6px; font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: #238636; border-color: #238636; color: #fff; }
+  button.primary:hover { background: #2ea043; border-color: #2ea043; }
+  button:disabled { opacity: .5; cursor: default; }
+  .status { font-size: 13px; color: var(--muted); }
+  .status.ok { color: var(--ok); }
+  .status.err { color: var(--err); }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  code { background: #1c2128; padding: 1px 6px; border-radius: 3px; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>Settings</h1>
+<p class="lead">Edit your subscription tiers. Changes overwrite <code>pricing.json</code>, mark it as user-edited (so the auto-detector won't overwrite it), and rebuild the dashboard.</p>
+
+<h2>Claude Code subscription</h2>
+<div class="card">
+  <div class="row"><label for="cl_tier">Tier</label><input id="cl_tier" placeholder="Max 20x"></div>
+  <div class="row"><label for="cl_monthly">Monthly USD</label><input id="cl_monthly" type="number" min="0" step="any" placeholder="200"></div>
+  <div class="row"><label for="cl_started">Started</label><input id="cl_started" type="date"></div>
+  <div class="hint">Common tiers: Pro ($20), Max 5x ($100), Max 20x ($200). <code>started</code> anchors the "subscription paid" total on the dashboard.</div>
+</div>
+
+<h2>Codex / ChatGPT subscription</h2>
+<div class="card">
+  <div class="row"><label for="cx_tier">Tier</label><input id="cx_tier" placeholder="ChatGPT Plus"></div>
+  <div class="row"><label for="cx_monthly">Monthly USD</label><input id="cx_monthly" type="number" min="0" step="any" placeholder="20"></div>
+  <div class="row"><label for="cx_started">Started</label><input id="cx_started" type="date"></div>
+  <div class="hint">The plan that includes Codex Desktop access (Plus, Pro, Team). Set monthly to <code>0</code> if you pay only the API.</div>
+</div>
+
+<div class="actions">
+  <button id="save" class="primary">Save and rebuild</button>
+  <button id="reload">Reload from disk</button>
+  <span id="status" class="status"></span>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+function setStatus(msg, cls) {
+  const el = $('status');
+  el.textContent = msg;
+  el.className = 'status' + (cls ? ' ' + cls : '');
+}
+
+async function loadConfig() {
+  if (!window.__TAURI__) { setStatus('Not running inside Tauri.', 'err'); return; }
+  const { invoke } = window.__TAURI__.core;
+  try {
+    const raw = await invoke('read_config');
+    const cfg = JSON.parse(raw);
+    const sub = cfg.subscription || {};
+    const csub = cfg.codex_subscription || {};
+    $('cl_tier').value = sub.tier || '';
+    $('cl_monthly').value = sub.monthly_usd != null ? sub.monthly_usd : '';
+    $('cl_started').value = sub.started || '';
+    $('cx_tier').value = csub.tier || '';
+    $('cx_monthly').value = csub.monthly_usd != null ? csub.monthly_usd : '';
+    $('cx_started').value = csub.started || '';
+    setStatus('Loaded ' + new Date().toLocaleTimeString() + '.');
+    window.__cfg = cfg;
+  } catch (e) {
+    setStatus('Read failed: ' + e, 'err');
+  }
+}
+
+async function saveConfig() {
+  if (!window.__TAURI__) { setStatus('Not running inside Tauri.', 'err'); return; }
+  const { invoke } = window.__TAURI__.core;
+  const cfg = window.__cfg || {};
+  cfg.subscription = Object.assign({}, cfg.subscription, {
+    tier: $('cl_tier').value.trim(),
+    monthly_usd: Number($('cl_monthly').value),
+    started: $('cl_started').value,
+    _autoDetected: false,
+  });
+  cfg.codex_subscription = Object.assign({}, cfg.codex_subscription, {
+    tier: $('cx_tier').value.trim(),
+    monthly_usd: Number($('cx_monthly').value),
+    started: $('cx_started').value,
+    _autoDetected: false,
+  });
+  // Basic validation
+  for (const [k, v] of [
+    ['Claude tier', cfg.subscription.tier],
+    ['Codex tier', cfg.codex_subscription.tier],
+    ['Claude started', cfg.subscription.started],
+    ['Codex started', cfg.codex_subscription.started],
+  ]) {
+    if (!v) { setStatus(k + ' is required.', 'err'); return; }
+  }
+  if (!isFinite(cfg.subscription.monthly_usd) || cfg.subscription.monthly_usd < 0) {
+    setStatus('Claude monthly USD must be a non-negative number.', 'err'); return;
+  }
+  if (!isFinite(cfg.codex_subscription.monthly_usd) || cfg.codex_subscription.monthly_usd < 0) {
+    setStatus('Codex monthly USD must be a non-negative number.', 'err'); return;
+  }
+
+  const save = $('save');
+  save.disabled = true;
+  setStatus('Saving…');
+  try {
+    await invoke('write_config', { contents: JSON.stringify(cfg, null, 2) + '\n' });
+    setStatus('Saved. Rebuilding dashboard…');
+    await invoke('prepare_dashboard');
+    setStatus('Saved and dashboard rebuilt.', 'ok');
+  } catch (e) {
+    setStatus('Save failed: ' + e, 'err');
+  } finally {
+    save.disabled = false;
+  }
+}
+
+$('save').addEventListener('click', saveConfig);
+$('reload').addEventListener('click', loadConfig);
+loadConfig();
+</script>
+</body>
+</html>

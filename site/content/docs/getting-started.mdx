@@ -1,0 +1,95 @@
+---
+title: Getting Started
+description: Clone, install, and open a working vibestats dashboard in under two minutes.
+---
+
+This page walks you from zero to a working dashboard in your browser. The whole flow is local — no signups, no servers, no telemetry. The output is a single standalone HTML file with your usage data inlined as JSON.
+
+## Prerequisites
+
+- **Node.js 18+** on `PATH`
+- **rsync** (macOS ships with it; Linux: `apt install rsync`)
+- Either `~/.claude/` (from Claude Code) or `~/.codex/` (from Codex) on disk — ideally both. Missing dirs are silently skipped.
+
+No global npm installs and no auth tokens are required for the local flow. The optional [claude.ai web fetcher](./claude-web-fetch) needs a session cookie, but that's opt-in.
+
+## Install: pick one path
+
+Three ways to get the CLI on your machine. They all produce the same dashboards.
+
+### a. Clone the repo
+
+The most transparent option. You get the scripts, the example configs, and a working directory you can commit your snapshots into.
+
+```bash
+git clone https://github.com/trebeljahr/vibestats.git
+cd vibestats
+./install.sh
+```
+
+### b. npm one-shot
+
+No clone, no global install. Useful for a quick look.
+
+```bash
+npx @trebeljahr/vibestats
+```
+
+This writes its data into `~/.vibestats/` (configs, snapshots, generated HTML) and runs the same build flow.
+
+### c. Homebrew
+
+If you've already added the tap once:
+
+```bash
+brew tap trebeljahr/tap
+brew install vibestats
+vibestats
+```
+
+Same `~/.vibestats/` data dir as the npm install. See [Publishing](./publishing) if you're forking the project.
+
+## What `install.sh` actually does
+
+The script is short on purpose. In order:
+
+1. **Seeds configs** — copies `pricing.example.json` to `pricing.json` and `project-aliases.example.json` to `project-aliases.json` if they don't exist yet. Re-runs are no-ops, so your edits are preserved.
+2. **Snapshots your data** — `scripts/snapshot.sh` rsyncs `~/.claude`, `~/.codex`, and `~/.gemini` (whichever exist) into `snapshots/<today>/`. Snapshots are dated dirs; nothing is destructive.
+3. **Runs the four builders** in sequence via `scripts/build-all.sh`:
+   - `build-dashboard.js` → `dashboard.html` (Claude Code only)
+   - `build-codex-dashboard.js` → `codex-dashboard.html` (Codex only)
+   - `build-claude-web-dashboard.js` → `claude-web-dashboard.html` (only if you've fetched web chats)
+   - `build-combined-dashboard.js` → `combined-dashboard.html` (everything merged)
+
+Re-run `./install.sh` any time to refresh — it takes a new snapshot and rebuilds from scratch.
+
+## Open the output
+
+Three options, pick whichever fits your habits:
+
+```bash
+./scripts/open.sh         # opens combined-dashboard.html via the OS default
+./scripts/serve.sh        # static HTTP server on a random high port (49152-65535)
+open combined-dashboard.html   # or just double-click in Finder
+```
+
+`serve.sh` picks a port in the high ephemeral range so it won't collide with your dev servers on 3000/5173/8080. Ctrl-C to stop it. The combined dashboard is a single self-contained HTML file — you can `scp` it to a server, drop it on Vercel/Netlify, or email it to yourself.
+
+## Reading the dashboard
+
+At a glance, top to bottom:
+
+- **Summary stats row** — active days, current/longest streak, sessions, messages, tokens, would-be API cost, subscription paid, and the value multiple (API cost ÷ subscription paid).
+- **GitHub-style heatmap** — one cell per day, colored by whichever metric is selected. Hover for the daily breakdown.
+- **Time-range filter** — last 7/30/90 days, this year, all time, or a custom range. Everything above and below reacts.
+- **Color-by selector** — switch the heatmap between tokens, cost, sessions, or messages.
+- **Models table** — per-model token counts, cost, and share of total. Useful for spotting where the bill actually goes.
+- **Projects table** — per-project sessions, days active, tokens, and cost. Rows are merged according to [project aliases](./project-aliases).
+
+## Next steps
+
+The defaults work, but a few minutes of config makes the numbers actually yours:
+
+- **[Edit `pricing.json`](./pricing-model)** — set your real subscription tier, monthly cost, and start date. The "value multiple" is meaningless until this matches reality.
+- **[Add project aliases](./project-aliases)** — if you've renamed a project mid-development, merge the old and new dirs into one canonical row.
+- **[Pull claude.ai web chats](./claude-web-fetch)** (optional) — the web chat history isn't on disk locally. The fetcher pulls it via a session cookie and adds it to the combined dashboard.

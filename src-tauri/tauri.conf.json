@@ -1,0 +1,74 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Vibestats",
+  "version": "0.1.0",
+  "identifier": "com.trebeljahr.vibestats",
+  "build": {
+    "frontendDist": "dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Vibestats",
+        "width": 1280,
+        "height": 900,
+        "minWidth": 800,
+        "minHeight": 500,
+        "url": "splash.html"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' asset: https://asset.localhost; img-src 'self' asset: https://asset.localhost data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'",
+      "assetProtocol": {
+        "enable": true,
+        "scope": {
+          "allow": [
+            "$HOME/.vibestats/**",
+            "$HOME/**",
+            "$APPDATA/com.trebeljahr.vibestats/**",
+            "/tmp/**",
+            "/private/tmp/**"
+          ]
+        }
+      }
+    },
+    "trayIcon": {
+      "iconPath": "icons/32x32.png",
+      "iconAsTemplate": true,
+      "menuOnLeftClick": false
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "DeveloperTool",
+    "shortDescription": "Local AI coding usage dashboard",
+    "longDescription": "GitHub-style heatmap, per-day token + cost breakdown, value-vs-subscription multiple for Claude Code + Codex.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [
+      "../bin/cli.js",
+      "../scripts/**/*",
+      "../pricing.example.json",
+      "../project-aliases.example.json"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "10.15",
+      "exceptionDomain": ""
+    },
+    "windows": {
+      "certificateThumbprint": null
+    },
+    "linux": {
+      "deb": {
+        "depends": ["nodejs", "rsync"]
+      }
+    }
+  }
+}

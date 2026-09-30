@@ -1,0 +1,139 @@
+# Per-PR + per-push-to-main verification. Catches drive-by mistakes that
+# scripts/release-prep.mjs and scripts/redact.js --check would otherwise only
+# catch at release time (when a human is already mid-release).
+#
+# Three independent jobs:
+#   tarball-audit — runs release-prep.mjs with RELEASE_SKIP_NPM_CHECK=1 +
+#     RELEASE_SKIP_CHANGELOG_CHECK=1 so the forbidden-files audit on
+#     `npm pack --dry-run` runs without needing registry access or a populated
+#     [Unreleased] changelog. Catches accidental whitelisting of *.jsonl,
+#     snapshots/, etc. in package.json's `files` array.
+#   redact-check — runs scripts/redact.js --check against two checked-in
+#     fixtures under fixtures/. Clean one must exit 0; planted-ghp_FAKE… one
+#     must exit non-zero. Negative case catches "I broke the regex"
+#     regressions where a weakened pattern stops flagging real leaks.
+#   cargo-check — cargo check + cargo clippy -D warnings, gated on changes
+#     under src-tauri/** so JS-only PRs don't pay the rust toolchain cost.
+#
+# All third-party Actions pinned to 40-char commit SHAs (same convention as
+# release.yml + audit.yml, see commit 4cb28a0). Dependabot/github-actions
+# keeps the pins fresh.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tarball-audit:
+    name: Tarball audit (release-prep.mjs)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: 22
+      - name: Check tracked privacy boundaries
+        run: node scripts/privacy-check.js
+      - name: release-prep.mjs (skip release-only gates, keep tarball audit)
+        env:
+          # Skip the npm-registry drift check (no registry access from CI)
+          # and the CHANGELOG `[Unreleased]` check (per-release gate, not
+          # something every PR should populate). Tarball audit always runs.
+          RELEASE_SKIP_NPM_CHECK: "1"
+          RELEASE_SKIP_CHANGELOG_CHECK: "1"
+        run: node scripts/release-prep.mjs
+
+  redact-check:
+    name: Redact --check (positive + negative fixtures)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: 22
+      - name: Clean fixture must exit 0
+        env:
+          VIBESTATS_DATA_DIR: ${{ github.workspace }}/fixtures/snapshot-fixture
+        run: node scripts/redact.js --check
+      - name: Planted-secret fixture must exit non-zero
+        env:
+          VIBESTATS_DATA_DIR: ${{ github.workspace }}/fixtures/snapshot-with-secret
+        run: |
+          set +e
+          node scripts/redact.js --check
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "::error::redact.js --check exited 0 against snapshot-with-secret fixture — secret pattern matching is broken"
+            exit 1
+          fi
+          echo "OK: --check exited $status against fixture with planted secret"
+
+  cargo-check:
+    name: Cargo check + clippy (src-tauri)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+        with:
+          # dorny/paths-filter compares against the previous commit on push
+          # events; needs full history (PR events use the GitHub API and don't).
+          fetch-depth: 0
+      - name: Detect src-tauri changes
+        id: changes
+        # v3.0.3 — pinned to the commit the v3 tag resolves to.
+        uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590
+        with:
+          filters: |
+            tauri:
+              - 'src-tauri/**'
+              - 'scripts/build-icons.mjs'
+      - name: Skip — no src-tauri changes in this push/PR
+        if: steps.changes.outputs.tauri != 'true'
+        run: echo "No src-tauri/** changes; skipping cargo check."
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8  # stable
+        if: steps.changes.outputs.tauri == 'true'
+        with:
+          components: clippy
+      - name: Linux deps (matches release.yml, plus icon toolchain)
+        if: steps.changes.outputs.tauri == 'true'
+        # librsvg2-bin → rsvg-convert (PNG sizes from icon.svg)
+        # imagemagick → magick (icon.ico from icon.png)
+        # icnsutils → png2icns (icon.icns from PNGs, since iconutil is macOS-only)
+        # Tauri's generate_context!() proc-macro validates every path in
+        # tauri.conf.json's bundle.icon array at compile time, so all three
+        # formats must exist before `cargo check` runs.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev \
+            librsvg2-bin imagemagick icnsutils
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        if: steps.changes.outputs.tauri == 'true'
+        with:
+          node-version: 22
+      - name: Generate icons (writes to src-tauri/icons/)
+        if: steps.changes.outputs.tauri == 'true'
+        run: node scripts/build-icons.mjs
+      - name: Cache cargo
+        if: steps.changes.outputs.tauri == 'true'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: cargo-ci-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: cargo-ci-
+      - name: cargo check
+        if: steps.changes.outputs.tauri == 'true'
+        working-directory: src-tauri
+        run: cargo check
+      - name: cargo clippy -D warnings
+        if: steps.changes.outputs.tauri == 'true'
+        working-directory: src-tauri
+        run: cargo clippy -- -D warnings

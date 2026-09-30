@@ -1,0 +1,106 @@
+---
+title: Snapshots, Refresh Cadence, and Retention
+description: How vibestats archives your usage data, what it includes, and how to keep (or prune) historical snapshots.
+---
+
+vibestats never reads your live `~/.claude` and `~/.codex` directories at build time. Instead it takes a dated snapshot, then builds the dashboards against that snapshot. This page explains the layout, what's captured, and how to manage the resulting files.
+
+## Snapshot layout
+
+Each refresh creates a dated directory under `snapshots/` in your data root:
+
+```
+snapshots/
+  2026-05-28/
+    projects/                          # rsync of ~/.claude/projects/
+    projects-archive/                  # rsync of ~/.claude/projects-archive/
+    statsig/                           # rsync of ~/.claude/statsig/
+    backups/                           # rsync of ~/.claude/backups/
+    sessions/                          # rsync of ~/.claude/sessions/
+    codex-sessions/                    # rsync of ~/.codex/archived_sessions/
+    gemini-antigravity-conversations/  # rsync of ~/.gemini/antigravity/conversations/
+    gemini-history/                    # rsync of ~/.gemini/history/
+    claude-web/                        # claude.ai web chats (if fetched)
+    manifest.txt                       # date, file counts, sizes
+  2026-05-29/
+    ...
+  2026-05-30/
+    ...
+```
+
+The data root is `~/.vibestats/` for npm/Homebrew installs and the repo root for local clones. Override with `VIBESTATS_DATA_DIR`.
+
+## Why dated directories
+
+Nothing is destructive. A snapshot is a point-in-time copy, so you can always rebuild against an older date to see your dashboard as it looked then. That matters when:
+
+- You're comparing a change in your workflow against the previous month.
+- A project got renamed and you want to confirm the [project alias](./project-aliases) change reproduces.
+- You want to ship a frozen dashboard to a collaborator without leaking newer activity.
+
+Missing source directories are silently skipped, so a snapshot taken before you installed Codex won't include a `codex-sessions/` dir — that's fine and expected.
+
+## What's included and what's skipped
+
+Included in full:
+
+- `~/.claude/projects/` and `~/.claude/projects-archive/` — both locations are copied so the dashboard sees more than the built-in `/stats` widget can. See [Archived projects](#why-archived-projects-matter) below.
+- `~/.codex/archived_sessions/` — Codex rollout jsonl, one file per session.
+- `~/.gemini/antigravity/conversations/` — Gemini Antigravity conversation files (snapshotted for safekeeping; the parser isn't written yet).
+- `~/.claude/statsig/`, `backups/`, `sessions/` — auxiliary Claude Code state.
+
+Intentionally skipped:
+
+- `~/.codex/logs_2.sqlite` — Codex's debug telemetry log. It's about 3 GB on an active machine and contains nothing the dashboard needs.
+- The live `claude.ai` web chat history. That isn't on disk; it has to be fetched separately. See [claude.ai web fetch](./claude-web-fetch).
+
+The `rsync -a --delete` flags mean each dated directory is a clean mirror of the source as it existed at snapshot time — not an incremental diff.
+
+## Refresh workflow
+
+The all-in-one path:
+
+```bash
+./install.sh
+```
+
+That runs the snapshot, then rebuilds every HTML. Use it on first run and whenever you want a clean refresh.
+
+When you only need to rebuild HTMLs against the snapshot you already took today, the two steps are also exposed separately:
+
+```bash
+./scripts/snapshot.sh     # rsync sources into snapshots/<today>/
+./scripts/build-all.sh    # rebuild dashboard.html, codex-dashboard.html,
+                          # claude-web-dashboard.html, combined-dashboard.html
+```
+
+`build-all.sh` reads from the most recent dated directory under `snapshots/`. If you want to rebuild against an older snapshot, temporarily move the newer dates aside.
+
+How often to refresh is up to you. Daily is enough to keep streaks accurate; weekly is fine if you don't care about today's number. Running it twice on the same day just overwrites that day's snapshot.
+
+## Retention strategy
+
+Snapshots are mostly small — Claude Code and Codex transcripts are line-delimited JSON. A typical day adds a few MB. Looking at the per-snapshot `manifest.txt` will tell you the exact size of the live and archived sections.
+
+Two reasonable approaches:
+
+1. **Keep the latest snapshot, delete the rest.** Safe if you don't care about historical reproducibility — the data sources themselves still live in `~/.claude` and `~/.codex`, so a future snapshot can rebuild against them.
+2. **Keep all snapshots and commit them to git.** This gives you a permanent history. The snapshot directories diff cleanly because the jsonl files are append-only by date. If you do this, make sure the repo is private — the transcripts contain everything you've prompted.
+
+To prune manually:
+
+```bash
+# Drop everything older than 30 days from the data root
+find ~/.vibestats/snapshots -mindepth 1 -maxdepth 1 -type d \
+  -mtime +30 -exec rm -rf {} +
+```
+
+There's no automatic retention policy. The tool will happily keep years of snapshots if you let it.
+
+## Why archived projects matter
+
+Claude Code periodically moves older project directories from `~/.claude/projects/` to `~/.claude/projects-archive/` — you can see the last cleanup timestamp in `~/.claude/.last-cleanup`. The built-in `/stats` widget only reads `projects/`, so projects you haven't touched in a while disappear from its numbers.
+
+vibestats reads both locations and merges them. That's why your dashboard's "active days" and lifetime token counts can exceed what `/stats` shows: the archived transcripts are still in play.
+
+If you've renamed a project across the archive boundary (one directory in `projects/`, the older one in `projects-archive/`), use [project aliases](./project-aliases) to merge them into a single row.

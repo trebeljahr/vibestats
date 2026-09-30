@@ -1,0 +1,9 @@
+{
+  "_comment": "Map a canonical project name -> list of source directory keys that should be merged into that row. Useful when you renamed a project mid-development, or when the same project is reachable via multiple paths. Keys match the dir-name encoding produced after worktree suffixes are stripped (i.e. they look like the names in your ~/.claude/projects/ folder).",
+  "aliases": {
+    "_example_canonical_name": [
+      "-Users-yourname-projects-old-name",
+      "-Users-yourname-projects-new-name"
+    ]
+  }
+}

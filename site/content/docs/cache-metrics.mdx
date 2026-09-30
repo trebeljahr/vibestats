@@ -1,0 +1,80 @@
+---
+title: Prompt Cache Metrics Explained
+description: How to read the cache_read, cache_5m, and cache_1h columns in the models table — and why cache_read usually dominates the token count without dominating the bill.
+---
+
+The models table breaks every token into one of five classes: `input`, `output`, `cache_5m` (write), `cache_1h` (write), and `cache_read`. Three of those are cache columns, and they are the most misread numbers on the dashboard. This page explains what each one means, why a session can show 10M cached tokens and still cost $5, and why the Codex rows have two of the columns sitting at zero.
+
+## Anthropic prompt caching primer
+
+Anthropic's API lets you mark prefix segments of a prompt as cacheable. The first request that includes the marked segment pays a small premium to *write* the cache entry. Subsequent requests that reuse the same prefix pay a fraction of the normal input price to *read* it back. The cache is keyed by exact prefix match, so anything that keeps the system prompt and early context stable across calls — long Claude Code sessions, agent loops, repeated tool calls — benefits.
+
+The API reports each class separately in the response usage block, and the dashboard preserves that breakdown. The three cache classes are tracked as distinct token types because they have distinct prices:
+
+| Class | Price multiplier vs base input | What it represents |
+| --- | --- | --- |
+| `cache_5m` (write) | 1.25x | Wrote a cache entry with a 5-minute TTL |
+| `cache_1h` (write) | 2x | Wrote a cache entry with a 1-hour TTL |
+| `cache_read` | 0.1x | Read an existing cache entry on a subsequent call |
+
+So a cache read is roughly **10% the price of a fresh input token**. That single fact is the key to reading the rest of the table.
+
+## How the columns appear in the models table
+
+Each model row in the table shows raw token counts for all five classes plus a derived cost. The cache columns sit next to the `input` column, so a typical Claude Code session looks like:
+
+```
+model           input    cache_5m   cache_1h   cache_read   output    cost
+opus-4-7        180k     45k        2.1M       58M          290k      $42.18
+sonnet-4-6      95k      12k        0          14M          110k      $8.40
+```
+
+The `cache_read` column is almost always the largest by raw count. That is expected and healthy — it means the agent is reusing context efficiently instead of paying full price for the same prefix on every turn. The per-model prices used to convert these counts into dollars come from `pricing.json`; see [pricing model](./pricing-model) for how to edit them.
+
+## Why cache_read usually dominates the token count
+
+A Claude Code session sends the full conversation history on every turn. After 30 turns, each request includes 29 turns of prior context as cached prefix plus one new turn's worth of fresh input. Multiply that across an hour of coding and `cache_read` ends up an order of magnitude larger than `input`.
+
+This is the intended behavior of prompt caching, and the heatmap accounts for it. When colored by cost (the default), a day with 10M `cache_read` tokens does not light up as brightly as a day with 1M `output` tokens, because the cost difference between the two is roughly 250x per token at Opus prices.
+
+## What high cache-write-1h indicates
+
+`cache_5m` writes happen constantly in short-lived sessions — every new prefix gets a 5-minute cache entry that the next call reads. Seeing large `cache_5m` counts is normal.
+
+`cache_1h` writes are different. The 1-hour TTL is opt-in and costs 2x base input, so the SDK only requests it when a workflow is expected to keep the same prefix warm for a long time. If you see a model with a multi-million `cache_1h` count, it usually means one of:
+
+- A long-lived agent session that ran for an hour or more without restart
+- Heavy use of `/resume` to continue prior conversations
+- A workflow (orchestrator, scheduled task, long compaction) that explicitly requested the 1-hour TTL to avoid re-paying the write premium on every call
+
+None of this is a problem by itself — the 2x write is still cheaper than re-sending the same context as fresh input over and over. It is just a useful signal about what shape of work that model spent time on.
+
+## Practical implication: 10M cached tokens is not $50
+
+The most common misreading of the table is "I used 10M tokens, that must be expensive." It depends entirely on the class. At Opus 4.7 prices (`cache_read` = $0.50 / MTok):
+
+- **10M `cache_read`** = $5.00
+- **10M `input`** = $50.00
+- **10M `output`** = $250.00
+
+The heatmap intensity reflects cost, not raw token count, so a day dominated by cache reads will look much cooler than a day with the same number of output tokens. If you want the raw counts instead, the models table shows both side by side.
+
+## Why Codex models show 0 for cache_5m and cache_1h
+
+OpenAI's caching model is simpler than Anthropic's. The API exposes a single `cached_tokens` field in the response usage, which the dashboard maps to `cache_read`. There is no separate write class and no TTL choice — caching happens automatically when the same prefix is seen, and the read price is fixed at 10% of base input.
+
+So Codex rows in the table are intentionally:
+
+```
+model         input    cache_5m   cache_1h   cache_read   output    cost
+gpt-5         2.4M     0          0          18M          410k      $7.10
+gpt-5-codex   1.1M     0          0          9.3M         220k      $4.65
+```
+
+The `cache_5m` and `cache_1h` columns are blank for OpenAI models because there is nothing to put there — not because data is missing. See [the Codex data source page](./codex) for details on how Codex rollouts are parsed.
+
+## Related pages
+
+- [Pricing model](./pricing-model) — how `pricing.json` maps these classes to dollar amounts
+- [API vs subscription](./api-vs-subscription) — how the cost numbers roll up into the value-multiple display
+- [Models table](./models-table) — full column reference for the per-model breakdown

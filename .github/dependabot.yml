@@ -1,0 +1,33 @@
+# Dependabot — weekly scans for npm, cargo, and GitHub Actions.
+# Keeps the supply chain current and flags CVEs without manual polling.
+
+version: 2
+updates:
+  # Root npm package (the CLI / publish target).
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+
+  # Site / docs npm package.
+  - package-ecosystem: npm
+    directory: /site
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+
+  # Rust / Tauri backend.
+  - package-ecosystem: cargo
+    directory: /src-tauri
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+
+  # Pinned actions in .github/workflows/*.yml.
+  # Dependabot updates the SHA + comment together when a new release ships.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10

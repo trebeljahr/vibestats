@@ -1,0 +1,5 @@
+{"type":"summary","summary":"Refactor parser","leafUuid":"f1-leaf-0001"}
+{"type":"user","uuid":"f1-u-0001","timestamp":"2026-01-01T09:00:00.000Z","sessionId":"fix-sess-day1","cwd":"/tmp/test-myproj","message":{"role":"user","content":"Rename helper to parseRow"}}
+{"type":"assistant","uuid":"f1-a-0001","timestamp":"2026-01-01T09:00:04.000Z","sessionId":"fix-sess-day1","message":{"id":"msg_fix_001","role":"assistant","model":"claude-sonnet-4-5","content":[{"type":"text","text":"Renamed."}],"usage":{"input_tokens":120,"output_tokens":18,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}
+{"type":"user","uuid":"f1-u-0002","timestamp":"2026-01-01T09:01:00.000Z","sessionId":"fix-sess-day1","cwd":"/tmp/test-myproj","message":{"role":"user","content":"Run tests"}}
+{"type":"assistant","uuid":"f1-a-0002","timestamp":"2026-01-01T09:01:03.000Z","sessionId":"fix-sess-day1","message":{"id":"msg_fix_002","role":"assistant","model":"claude-sonnet-4-5","content":[{"type":"text","text":"All green."}],"usage":{"input_tokens":210,"output_tokens":7,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}

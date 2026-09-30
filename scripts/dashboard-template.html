@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Claude Code stats</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230d1117'/%3E%3Crect x='14' y='62' width='14' height='24' rx='2' fill='%2339d353'/%3E%3Crect x='32' y='44' width='14' height='42' rx='2' fill='%2326a641'/%3E%3Crect x='50' y='28' width='14' height='58' rx='2' fill='%23006d32'/%3E%3Crect x='68' y='14' width='14' height='72' rx='2' fill='%230e4429'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #7d8590; --card: #161b22; --border: #30363d;
+    --accent: #58a6ff;
+    --c0: #161b22; --c1: #0e4429; --c2: #006d32; --c3: #26a641; --c4: #39d353;
+  }
+  * { box-sizing: border-box; }
+  body { font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--fg); margin: 0; padding: 32px; max-width: 1280px; }
+  h1, h2 { font-weight: 600; margin: 0 0 12px; }
+  h1 { font-size: 24px; }
+  h2 { font-size: 16px; margin-top: 28px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .muted { color: var(--muted); }
+  /* Age of the underlying build — deliberately loud, a stale dashboard is
+     otherwise indistinguishable from a current one. */
+  .stale-badge { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 12px;
+                 color: #f0b429; background: rgba(240,180,41,.12); border: 1px solid rgba(240,180,41,.35); }
+  code { background: #1c2128; padding: 1px 6px; border-radius: 3px; font-size: 12px; }
+  .grid { display: grid; gap: 16px; }
+  .stats { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); margin: 16px 0; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .stat .num { font-size: 26px; font-weight: 600; }
+  .stat .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .stat .lbl { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; margin-top: 6px; }
+  .stat.highlight { background: linear-gradient(135deg, #1f6feb22 0%, #16191e 100%); border-color: var(--accent); }
+  .stat.highlight .num { color: var(--accent); }
+  .controls { display: flex; gap: 8px; align-items: center; margin: 12px 0; flex-wrap: wrap; }
+  /* Window pager. Paging past the first day of data is allowed on purpose —
+     an empty grid is a real answer to "was I using this back then?". */
+  .pager { display: flex; gap: 4px; align-items: center; }
+  .pager[hidden] { display: none; }
+  .pager-btn { padding: 4px 10px; line-height: 1.2; font-size: 16px; }
+  .pager-btn:disabled { opacity: .35; cursor: default; border-color: var(--border); }
+  .window-label { color: var(--muted); min-width: 190px; text-align: center; font-variant-numeric: tabular-nums; }
+  select, button { background: var(--card); color: var(--fg); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; font: inherit; cursor: pointer; }
+  select:hover, button:hover { border-color: var(--accent); }
+
+  .heatmap-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-x: auto; }
+  /* max-content (not 1fr) so a wide window — a full year is 53 columns —
+     overflows into .heatmap-wrap's horizontal scroll instead of being clipped. */
+  .heatmap-grid { display: grid; grid-template-columns: 36px max-content; gap: 6px; }
+  /* Sticky so Mon/Wed/Fri stay readable once a wide window scrolls sideways.
+     The background is the card colour so cells pass behind it, not through it. */
+  .day-labels { display: grid; grid-template-rows: repeat(7, 22px); gap: 4px; padding-top: 22px; font-size: 11px; color: var(--muted);
+                position: sticky; left: 0; z-index: 2; background: var(--card); padding-right: 4px; }
+  .day-labels span { line-height: 22px; }
+  .heatmap-col { display: flex; flex-direction: column; gap: 0; }
+  .month-row { height: 16px; font-size: 11px; color: var(--muted); position: relative; margin-bottom: 6px; font-weight: 600; }
+  .month-label { position: absolute; top: 0; white-space: nowrap; }
+  .cells { display: grid; grid-template-rows: repeat(7, 22px); grid-auto-flow: column; grid-auto-columns: 22px; gap: 4px; }
+  .cell { width: 22px; height: 22px; border-radius: 3px; background: var(--c0); border: 1px solid #ffffff08; }
+  .cell.l1 { background: var(--c1); } .cell.l2 { background: var(--c2); }
+  .cell.l3 { background: var(--c3); } .cell.l4 { background: var(--c4); }
+  .cell:hover { outline: 1px solid var(--fg); border-color: transparent; cursor: pointer; }
+  .legend { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); margin-top: 12px; }
+  .legend .cell { width: 12px; height: 12px; cursor: default; }
+  .legend .cell:hover { outline: none; }
+
+  table { border-collapse: collapse; width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; font-size: 13px; }
+  th { background: #1c2128; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 10px; background: #30363d; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+  .pill.live { background: #1f6feb22; color: var(--accent); }
+  #tooltip { position: absolute; background: #1c2128; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 12px; pointer-events: none; display: none; white-space: nowrap; z-index: 10; box-shadow: 0 4px 12px #00000080; }
+  .footnote { font-size: 11px; color: var(--muted); margin-top: 16px; }
+
+  #dayBackdrop { position: fixed; inset: 0; background: #00000099; display: none; z-index: 50; }
+  #dayBackdrop.open { display: block; }
+  #dayPanel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(720px, calc(100vw - 48px)); max-height: calc(100vh - 64px); overflow-y: auto; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 24px; z-index: 51; display: none; box-shadow: 0 20px 60px #00000099; }
+  #dayPanel.open { display: block; }
+  .day-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .day-head h3 { margin: 0; font-size: 18px; font-weight: 600; }
+  .day-head .sub { font-size: 12px; color: var(--muted); }
+  .day-close { background: transparent; border: 1px solid var(--border); color: var(--fg); border-radius: 6px; padding: 4px 10px; cursor: pointer; font: inherit; }
+  .day-close:hover { border-color: var(--accent); }
+  .day-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 18px; }
+  .day-stat { background: #1c2128; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+  .day-stat .num { font-size: 18px; font-weight: 600; }
+  .day-stat .lbl { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; margin-top: 2px; }
+  .day-section h4 { margin: 16px 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+  .day-section table { border: 1px solid var(--border); border-radius: 6px; }
+  .day-section th, .day-section td { padding: 6px 10px; font-size: 12px; }
+  .day-empty { color: var(--muted); font-size: 12px; padding: 8px 0; }
+
+  /* Header actions — refresh + edit grouping buttons sit right of the h1 title */
+  .header-row { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; flex-wrap: wrap; }
+  .header-row h1 { margin: 0; flex: 1; min-width: 0; }
+  .icon-btn { background: transparent; border: 1px solid var(--border); color: var(--fg); border-radius: 6px; padding: 6px 10px; cursor: pointer; font: inherit; display: inline-flex; align-items: center; gap: 6px; }
+  .icon-btn:hover { border-color: var(--accent); }
+  .icon-btn svg { display: block; }
+  .icon-btn.is-loading svg { animation: spin 0.8s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .help-icon { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; border: 1px solid currentColor; font-size: 9px; margin-left: 4px; cursor: help; opacity: .6; vertical-align: middle; }
+
+  /* Grouping editor modal — mirrors #dayPanel pattern */
+  #groupingBackdrop { position: fixed; inset: 0; background: #00000099; display: none; z-index: 50; }
+  #groupingBackdrop.open { display: block; }
+  #groupingPanel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(900px, calc(100vw - 48px)); max-height: calc(100vh - 64px); overflow-y: auto; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 24px; z-index: 51; display: none; box-shadow: 0 20px 60px #00000099; }
+  #groupingPanel.open { display: block; }
+  #groupingPanel table { border: 1px solid var(--border); border-radius: 6px; }
+  #groupingPanel th, #groupingPanel td { padding: 6px 10px; font-size: 12px; vertical-align: top; }
+  #groupingPanel input[type=text], #groupingPanel textarea { width: 100%; background: #0d1117; color: var(--fg); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font: inherit; font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
+  #groupingPanel textarea { min-height: 48px; resize: vertical; }
+  #groupingPanel .grouping-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; flex-wrap: wrap; }
+  #groupingPanel .grouping-note { font-size: 11px; color: var(--muted); margin-top: 12px; }
+  #groupingPanel .grouping-fallback { display: none; margin-top: 16px; }
+  #groupingPanel .grouping-fallback textarea { min-height: 160px; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="header-row">
+  <h1>Claude Code stats <span class="muted" style="font-size:14px;font-weight:normal" id="snapshotMeta"></span></h1>
+  <button id="refreshBtn" class="icon-btn" title="Refresh data (re-run snapshot + rebuild)" aria-label="Refresh">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M13.5 2.5v3h-3"/>
+      <path d="M2.5 13.5v-3h3"/>
+      <path d="M13.5 5.5A6 6 0 0 0 3 6"/>
+      <path d="M2.5 10.5A6 6 0 0 0 13 10"/>
+    </svg>
+  </button>
+  <button id="groupingBtn" class="icon-btn" title="Edit project grouping (aliases)" aria-label="Edit grouping">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="4" cy="3" r="1.5"/>
+      <circle cx="4" cy="13" r="1.5"/>
+      <circle cx="12" cy="8" r="1.5"/>
+      <path d="M4 4.5v7"/>
+      <path d="M4 8h2a3 3 0 0 0 3-3v0"/>
+      <path d="M4 8h2a3 3 0 0 1 3 3v0"/>
+    </svg>
+    <span>Edit grouping</span>
+  </button>
+</div>
+
+<div id="autoBanner" style="display:none;background:#1f2937;border:1px solid #58a6ff;border-radius:8px;padding:12px 16px;margin:12px 0;font-size:13px;align-items:center;gap:12px;flex-wrap:wrap">
+  <span style="font-size:18px">⚙️</span>
+  <span id="autoBannerMsg" style="flex:1"></span>
+  <button id="autoBannerConfirm" style="background:#238636;color:#fff;border:0;padding:6px 14px;border-radius:6px;cursor:pointer;font:inherit">Looks right</button>
+  <button id="autoBannerDismiss" style="background:transparent;color:var(--muted);border:1px solid var(--border);padding:6px 14px;border-radius:6px;cursor:pointer;font:inherit">Edit pricing.json</button>
+</div>
+
+<div id="mergesBanner" style="display:none;background:#2d2418;border:1px solid #d29922;border-radius:8px;padding:12px 16px;margin:12px 0;font-size:13px;align-items:center;gap:12px;flex-wrap:wrap">
+  <span style="font-size:18px">🔀</span>
+  <span id="mergesBannerMsg" style="flex:1"></span>
+  <button id="mergesBannerDismiss" style="background:transparent;color:var(--muted);border:1px solid var(--border);padding:6px 14px;border-radius:6px;cursor:pointer;font:inherit">Dismiss</button>
+</div>
+
+<div class="controls">
+  <label class="muted">Range</label>
+  <select id="rangeSelect">
+    <option value="all" selected>All time</option>
+    <option value="this-month">Month</option>
+    <option value="30">30 days</option>
+    <option value="90">90 days</option>
+    <option value="180">6 months</option>
+    <option value="365">365 days</option>
+    <option value="this-year">Year</option>
+  </select>
+  <div class="pager" id="pager">
+    <button id="prevWindow" class="icon-btn pager-btn" title="Earlier window (←)" aria-label="Earlier window">‹</button>
+    <span id="windowLabel" class="window-label"></span>
+    <button id="nextWindow" class="icon-btn pager-btn" title="Later window (→)" aria-label="Later window">›</button>
+  </div>
+  <label class="muted">Color by</label>
+  <select id="colorBy">
+    <option value="sessions" selected>Sessions</option>
+    <option value="messages">Messages</option>
+    <option value="tokens">Tokens</option>
+    <option value="cost">API cost</option>
+  </select>
+</div>
+
+<div class="grid stats" id="statsGrid"></div>
+
+<h2>Activity heatmap</h2>
+<div class="heatmap-wrap">
+  <div class="heatmap-grid">
+    <div class="day-labels">
+      <span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span><span>Sun</span>
+    </div>
+    <div class="heatmap-col">
+      <div id="monthRow" class="month-row"></div>
+      <div id="cells" class="cells"></div>
+    </div>
+  </div>
+  <div class="legend">
+    Less
+    <span class="cell"></span><span class="cell l1"></span><span class="cell l2"></span><span class="cell l3"></span><span class="cell l4"></span>
+    More
+    <span style="margin-left:auto" id="legendNote"></span>
+  </div>
+</div>
+
+<h2>Models (filtered)</h2>
+<table><thead><tr>
+  <th>Tool</th><th>Model</th><th class="num">Messages</th><th class="num">Input</th><th class="num">Output</th>
+  <th class="num">Cache read</th><th class="num">Cache write 5m</th><th class="num">Cache write 1h</th><th class="num">API cost</th>
+</tr></thead><tbody id="modelsTbody"></tbody></table>
+
+<h2>Top projects (worktrees grouped under base project)</h2>
+<table><thead><tr>
+  <th>Project</th>
+  <!-- Diagnosis verdict: perception issue (only 4/30 rows show "—") — added column tooltip + cell title so "—" is self-explanatory rather than mysterious. -->
+  <th class="num">Worktrees <span class="help-icon" title="Number of worktree dirs (~/.claude/worktrees/* or ~/.codex/worktrees/*) merged into this canonical project. — means none recorded.">?</span></th>
+  <th class="num">Sessions</th><th class="num">Messages</th><th class="num">Active days</th><th class="num">Tokens</th><th>State</th>
+</tr></thead><tbody id="projectsTbody"></tbody></table>
+
+<div class="footnote" id="footnote"></div>
+
+<div id="tooltip"></div>
+
+<div id="dayBackdrop"></div>
+<div id="dayPanel" role="dialog" aria-modal="true" aria-labelledby="dayTitle">
+  <div class="day-head">
+    <div>
+      <h3 id="dayTitle"></h3>
+      <div class="sub" id="daySub"></div>
+    </div>
+    <button class="day-close" id="dayCloseBtn" aria-label="Close">Close (Esc)</button>
+  </div>
+  <div class="day-stats" id="dayStats"></div>
+  <div class="day-section">
+    <h4>Projects</h4>
+    <div id="dayProjectsWrap"></div>
+  </div>
+  <div class="day-section">
+    <h4>Models</h4>
+    <div id="dayModelsWrap"></div>
+  </div>
+</div>
+
+<div id="groupingBackdrop"></div>
+<div id="groupingPanel" role="dialog" aria-modal="true" aria-labelledby="groupingTitle">
+  <div class="day-head">
+    <div>
+      <h3 id="groupingTitle">Edit project grouping</h3>
+      <div class="sub">Canonical name on the left, comma-separated raw dir keys on the right. These map worktree/encoded paths back to a single canonical project.</div>
+    </div>
+    <button class="day-close" id="groupingCloseBtn" aria-label="Close">Close (Esc)</button>
+  </div>
+  <div id="groupingTableWrap"></div>
+  <div class="grouping-note">Raw keys use the on-disk encoding (e.g. <code>-Users-rico-projects-foo</code>). Saving writes <code>~/.vibestats/project-aliases.json</code>; the next snapshot picks up the changes.</div>
+  <div class="grouping-actions">
+    <button id="groupingAddRowBtn" class="icon-btn">+ Add row</button>
+    <button id="groupingCancelBtn" class="icon-btn">Cancel</button>
+    <button id="groupingSaveBtn" class="icon-btn">Save</button>
+  </div>
+  <div class="grouping-fallback" id="groupingFallback">
+    <div class="grouping-note">Not running in the desktop app — copy this JSON to <code>~/.vibestats/project-aliases.json</code> and re-snapshot:</div>
+    <textarea id="groupingFallbackText" readonly></textarea>
+    <div class="grouping-actions">
+      <button id="groupingCopyBtn" class="icon-btn">Copy to clipboard</button>
+    </div>
+  </div>
+</div>
+
+<script>window.__VIBESTATS_DATA = __DATA__;</script>
+<script>
+/* __SCRIPT__ */
+</script>
+</body>
+</html>

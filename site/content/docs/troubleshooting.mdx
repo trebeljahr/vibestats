@@ -1,0 +1,86 @@
+---
+title: Troubleshooting
+description: Known gotchas — missing directories, unknown models, parser limits, and how to work around them.
+---
+
+This page collects the issues that come up most often. Most are not bugs — they're the predictable result of how the parsers and snapshots work. Check here before opening an issue.
+
+## Empty dashboard / zero sessions
+
+If the dashboard renders but every chart is empty, one of two things is true:
+
+1. `~/.claude/projects/` does not exist yet. Claude Code creates that directory the first time it runs a session. Open Claude Code, send one message, then re-run the snapshot.
+2. The snapshot ran before any sessions had landed on disk. The JSONL files are written when sessions end (or buffer-flush), so a snapshot taken mid-session sees nothing.
+
+Re-run the install/refresh script:
+
+```bash
+./install.sh
+```
+
+That re-snapshots `~/.claude/` and `~/.codex/`, rebuilds, and reopens the dashboard.
+
+## Unknown model warnings
+
+The combined builder prints warnings like:
+
+```txt
+[pricing] unknown model: claude-sonnet-5-20260601
+```
+
+This means a newer Claude or OpenAI model showed up in your JSONL but isn't listed in `pricing.json` yet. Costs for that model will be omitted from totals until you add it.
+
+Fix: copy a similar entry from `pricing.example.json` into your local `pricing.json`, edit the model id and the per-MTok rates (input, output, cache write, cache read), then rebuild:
+
+```bash
+./install.sh
+```
+
+See [Pricing model](./pricing-model) for the full schema and where rates come from.
+
+## Codex `logs_2.sqlite too large` is expected
+
+Codex writes a debug SQLite log at `~/.codex/sessions/logs_2.sqlite` that routinely grows past 3GB. The parser skips it on purpose — it isn't the source of truth for session data. The real per-session records live as JSONL under:
+
+```txt
+~/.codex/archived_sessions/
+```
+
+That directory is what gets parsed. If the warning bothers you, ignore it; nothing is lost.
+
+## Gemini Antigravity files snapshotted but not visible
+
+Snapshots will copy Gemini Antigravity conversation files under `~/.gemini-antigravity/` (or equivalent), but they won't appear in the dashboard. The conversations are stored as protobuf without a bundled `.proto` schema, so the builder has no way to decode them.
+
+Decoding Antigravity transcripts is a planned feature. Until then, the files are preserved on disk but not surfaced.
+
+## Numbers feel low
+
+The dashboard reflects what is in the JSONL files. Two real charges never show up there:
+
+- **Fast-mode 6x Opus premium.** When fast mode is enabled, Anthropic bills Opus tokens at a 6x multiplier. The JSONL records the raw token counts, not the surcharge.
+- **Server-tool charges.** Web search, code execution, and other server-side tools are billed separately by Anthropic and never appear in the conversation transcript.
+
+If you need a true total, your Anthropic invoice or usage dashboard is the source of truth. This project is best read as a relative trend over time, not an accounting ledger.
+
+## `claude.ai` web fetch returns 401
+
+The optional [claude.ai web fetch](./claude-web-fetch) uses your browser session cookie. Anthropic rotates `sessionKey` on a schedule (and on logout), so a 401 after a few days is normal.
+
+Fix: re-grab the cookie from DevTools and re-export it.
+
+```bash
+export CLAUDE_SESSION_KEY="sk-ant-sid01-..."
+node scripts/fetch-claude-web.js
+```
+
+See [claude.ai web fetch](./claude-web-fetch) for the DevTools steps.
+
+## Still stuck?
+
+If none of the above matches, open an issue with:
+
+- The exact command you ran
+- The full stderr output
+- Your OS and Node version
+- Whether `~/.claude/projects/` and `~/.codex/archived_sessions/` exist and are non-empty
