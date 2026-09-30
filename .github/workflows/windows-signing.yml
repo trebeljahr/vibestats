@@ -57,11 +57,12 @@ jobs:
         run: |
           $config = Join-Path $env:RUNNER_TEMP 'tauri-signing.json'
           $hook = Join-Path $env:GITHUB_WORKSPACE 'scripts/sign-windows-artifact.ps1'
+          & $hook (Join-Path $env:GITHUB_WORKSPACE 'src-tauri/target/release/vibestats.exe')
           @{ bundle = @{ windows = @{ signCommand = @{
-            cmd = 'pwsh'
+            cmd = (Get-Command pwsh).Source
             args = @('-NoProfile', '-File', $hook, '%1')
           } } } } | ConvertTo-Json -Depth 6 | Set-Content $config
-          npx --no-install tauri bundle --bundles msi --config $config
+          npx --no-install tauri bundle --verbose --bundles msi --config $config
       - name: Verify publisher and embedded app
         run: ./scripts/verify-windows-signatures.ps1
       - name: Upload verified build and signature evidence
