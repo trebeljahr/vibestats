@@ -35,9 +35,9 @@ if (require.main === module) {
       const split = entry.indexOf(' ');
       if (split < 0) continue;
       const oid = entry.slice(0,split), file = entry.slice(split+1);
+      if (execFileSync('git',['cat-file','-t',oid],{cwd:root,encoding:'utf8'}).trim() !== 'blob') continue;
       if (forbidden(file)) { bad.push(file + ' (history)'); continue; }
       if (fixture.test(file)) continue;
-      if (execFileSync('git',['cat-file','-t',oid],{cwd:root,encoding:'utf8'}).trim() !== 'blob') continue;
       const size = Number(execFileSync('git',['cat-file','-s',oid],{cwd:root,encoding:'utf8'}));
       if (size > 2 * 1024 * 1024) continue;
       const data = execFileSync('git',['cat-file','blob',oid],{cwd:root,maxBuffer:3*1024*1024});
