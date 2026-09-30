@@ -87,7 +87,7 @@ jobs:
       - name: Detect src-tauri changes
         id: changes
         # v3.0.3 — pinned to the commit the v3 tag resolves to.
-        uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d
         with:
           filters: |
             tauri:
