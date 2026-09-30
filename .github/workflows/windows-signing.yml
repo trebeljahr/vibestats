@@ -53,21 +53,15 @@ jobs:
           timestamp-digest: SHA256
           exclude-environment-credential: true
           exclude-azure-cli-credential: false
-      - name: Package signed app
-        run: npx --no-install tauri bundle --bundles msi
-      - name: Sign MSI
-        uses: azure/artifact-signing-action@b443cf8ea4124818d2ea9f043cba29fc3ec47b16 # v1
-        with:
-          endpoint: https://weu.codesigning.azure.net/
-          signing-account-name: ricoslabs-signing
-          certificate-profile-name: ricoslabs-public
-          files-folder: ${{ github.workspace }}\src-tauri\target\release\bundle\msi
-          files-folder-filter: msi
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
-          exclude-environment-credential: true
-          exclude-azure-cli-credential: false
+      - name: Package and sign after Tauri patches the binary
+        run: |
+          $config = Join-Path $env:RUNNER_TEMP 'tauri-signing.json'
+          $hook = Join-Path $env:GITHUB_WORKSPACE 'scripts/sign-windows-artifact.ps1'
+          @{ bundle = @{ windows = @{ signCommand = @{
+            cmd = 'pwsh'
+            args = @('-NoProfile', '-File', $hook, '%1')
+          } } } } | ConvertTo-Json -Depth 6 | Set-Content $config
+          npx --no-install tauri bundle --bundles msi --config $config
       - name: Verify publisher and embedded app
         run: ./scripts/verify-windows-signatures.ps1
       - name: Upload verified build and signature evidence
@@ -77,6 +71,6 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           path: |
-            src-tauri/target/release/vibestats.exe
+            signed-windows/vibestats.exe
             src-tauri/target/release/bundle/msi/*.msi
             windows-signatures.json

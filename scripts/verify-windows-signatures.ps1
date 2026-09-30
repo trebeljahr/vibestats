@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $release = Join-Path $PSScriptRoot '../src-tauri/target/release'
-$app = Get-Item (Join-Path $release 'vibestats.exe')
+$app = Get-Item (Join-Path $env:GITHUB_WORKSPACE 'signed-windows/vibestats.exe')
 $installers = @(Get-ChildItem (Join-Path $release 'bundle/msi') -Filter '*.msi' -File)
 if ($installers.Count -ne 1) { throw "Expected one MSI, found $($installers.Count)" }
 $evidence = [System.Collections.Generic.List[object]]::new()
