@@ -23,13 +23,7 @@
       "assetProtocol": {
         "enable": true,
         "scope": {
-          "allow": [
-            "$HOME/.vibestats/**",
-            "$HOME/**",
-            "$APPDATA/com.trebeljahr.vibestats/**",
-            "/tmp/**",
-            "/private/tmp/**"
-          ]
+          "allow": []
         }
       }
     },

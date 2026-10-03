@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use tauri::{
@@ -66,11 +66,26 @@ fn cli_path(handle: &tauri::AppHandle) -> Option<PathBuf> {
 }
 
 #[tauri::command]
-fn dashboard_path() -> String {
-    data_root()
-        .join("combined-dashboard.html")
-        .to_string_lossy()
-        .into_owned()
+fn dashboard_path(handle: tauri::AppHandle) -> Result<String, String> {
+    allow_dashboard(&handle.asset_protocol_scope(), &data_root())
+}
+
+fn allow_dashboard(scope: &tauri::scope::fs::Scope, root: &Path) -> Result<String, String> {
+    // Grant only the generated regular file, never a symlink to a sibling config.
+    let candidate = root.join("combined-dashboard.html");
+    let metadata = candidate
+        .symlink_metadata()
+        .map_err(|e| format!("resolve dashboard: {e}"))?;
+    if !metadata.file_type().is_file() {
+        return Err("dashboard is not a regular file".into());
+    }
+    let path = candidate
+        .canonicalize()
+        .map_err(|e| format!("resolve dashboard: {e}"))?;
+    scope
+        .allow_file(&path)
+        .map_err(|e| format!("allow dashboard asset: {e}"))?;
+    Ok(path.to_string_lossy().into_owned())
 }
 
 /// Run `vibestats <subcommands>` against our data_root.
@@ -91,14 +106,15 @@ fn run_cli(handle: &tauri::AppHandle, subs: &[&str], live: bool) -> Result<Strin
     let mut out = String::new();
     for sub in subs {
         let mut cmd = Command::new("node");
-        cmd.arg(&cli)
-            .arg(sub)
-            .env("VIBESTATS_DATA_DIR", &data_dir);
+        cmd.arg(&cli).arg(sub).env("VIBESTATS_DATA_DIR", &data_dir);
         if live {
             cmd.env("VIBESTATS_LIVE", "1");
         }
         let res = cmd.output().map_err(|e| format!("spawn {sub}: {e}"))?;
-        out.push_str(&format!("=== {sub}{} ===\n", if live { " (live)" } else { "" }));
+        out.push_str(&format!(
+            "=== {sub}{} ===\n",
+            if live { " (live)" } else { "" }
+        ));
         out.push_str(&String::from_utf8_lossy(&res.stdout));
         out.push_str(&String::from_utf8_lossy(&res.stderr));
         if !res.status.success() {
@@ -218,13 +234,8 @@ pub fn run() {
                 MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
             let refresh_item =
                 MenuItem::with_id(app, "refresh", "Refresh Now", true, None::<&str>)?;
-            let snapshot_item = MenuItem::with_id(
-                app,
-                "snapshot",
-                "Snapshot + Rebuild…",
-                true,
-                None::<&str>,
-            )?;
+            let snapshot_item =
+                MenuItem::with_id(app, "snapshot", "Snapshot + Rebuild…", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(
                 app,
@@ -294,4 +305,69 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod dashboard_scope_tests {
+    use super::*;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+    struct Fixture(PathBuf);
+    impl Fixture {
+        fn new() -> Self {
+            let root = std::env::temp_dir().join(format!(
+                "vibestats-scope-{}-{}",
+                std::process::id(),
+                NEXT_ID.fetch_add(1, Ordering::Relaxed)
+            ));
+            fs::create_dir(&root).unwrap();
+            Self(root)
+        }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn custom_directory_grants_only_the_dashboard() {
+        let fixture = Fixture::new();
+        let dashboard = fixture.0.join("combined-dashboard.html");
+        let sibling = fixture.0.join("project-aliases.json");
+        fs::write(&dashboard, "<html>synthetic fixture</html>").unwrap();
+        fs::write(&sibling, "{}").unwrap();
+        let app = tauri::test::mock_app();
+        let scope = tauri::scope::fs::Scope::new(
+            &app,
+            &tauri::utils::config::FsScope::AllowedPaths(vec![]),
+        )
+        .unwrap();
+        assert!(!scope.is_allowed(&dashboard));
+        assert_eq!(
+            PathBuf::from(allow_dashboard(&scope, &fixture.0).unwrap()),
+            dashboard.canonicalize().unwrap()
+        );
+        assert!(scope.is_allowed(&dashboard));
+        assert!(!scope.is_allowed(&sibling));
+        assert!(!scope.is_allowed(&fixture.0));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlink_cannot_grant_access_to_a_sibling() {
+        let fixture = Fixture::new();
+        let sibling = fixture.0.join("project-aliases.json");
+        fs::write(&sibling, "{}").unwrap();
+        std::os::unix::fs::symlink(&sibling, fixture.0.join("combined-dashboard.html")).unwrap();
+        let app = tauri::test::mock_app();
+        let scope = tauri::scope::fs::Scope::new(
+            &app,
+            &tauri::utils::config::FsScope::AllowedPaths(vec![]),
+        )
+        .unwrap();
+        assert!(allow_dashboard(&scope, &fixture.0).is_err());
+        assert!(!scope.is_allowed(&sibling));
+    }
 }
