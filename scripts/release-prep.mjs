@@ -14,7 +14,7 @@
  * Adapted from hatchkit/cli/scripts/release-prep.mjs (single-package layout).
  */
 
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -112,9 +112,18 @@ function checkUnreleasedChangelog(repoRoot) {
  *  Defends against accidental shipping of user data, snapshots, or
  *  generated dashboards. */
 function auditTarball(repoRoot) {
+  try {
+    execFileSync(process.execPath, [join(repoRoot, "scripts/privacy-check.js")], {
+      cwd: repoRoot,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  } catch (err) {
+    return `privacy check failed: ${err.message}`;
+  }
   let listing;
   try {
-    listing = sh("npm pack --dry-run --json", { cwd: repoRoot, stdio: ["ignore", "pipe", "ignore"] });
+    // Run the privacy guard separately so lifecycle output cannot corrupt JSON.
+    listing = sh("npm pack --dry-run --json --ignore-scripts", { cwd: repoRoot, stdio: ["ignore", "pipe", "ignore"] });
   } catch (err) {
     return `npm pack --dry-run failed: ${err.message}`;
   }
