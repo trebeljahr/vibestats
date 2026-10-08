@@ -7,23 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- **Live mode** — `vibestats live` (and `vibestats build --live` / `VIBESTATS_LIVE=1`) rebuilds dashboards by reading `~/.claude`, `~/.codex`, `~/.gemini` and the Cline/Goose dirs in place, skipping the ~2GB snapshot rsync. Seconds instead of minutes, and the result includes sessions from moments ago.
-- **Time pager** — the heatmap window (month / N days / calendar year) can be stepped backwards and forwards with ‹ › or the arrow keys, including past the first day of data. Windows render their whole span, so an empty period shows as an empty grid with zeroed stats instead of no chart.
-- **Staleness badge** — the dashboard header now reports whether it was built from a snapshot or live dirs, and shows an "N days old — refresh" badge when the build is more than a day old. The combined view also names any per-tool aggregate lagging behind the others.
-
-### Changed
-
-- **`pnpm dev` shows real data.** The dev preview fetched a checked-in fixture, which silently froze it at the day the fixture was generated. It now loads a live-built payload from the dev server; `VIBESTATS_FIXTURE=1` restores the fixture for screenshots.
-- Refresh button rebuilds from the dev server when running under vite (it already invoked the snapshot+build pipeline in the desktop app).
-
-### Fixed
-
-- Wide heatmaps (a full year is 53 columns) scroll horizontally instead of being clipped; the weekday labels stay pinned while they do.
-- Zero values render as `0` / `$0` rather than `+0`, `−0` and `$0.0000`.
-
-## [0.1.0] - 2026-05-30
+## [0.1.0] - 2026-10-08
 
 First public release. CLI + Tauri desktop app + npm package + Homebrew formula.
 
@@ -52,6 +36,9 @@ First public release. CLI + Tauri desktop app + npm package + Homebrew formula.
 - **Icon set generator** — `scripts/build-icons.mjs` regenerates platform icons from `icons/icon.svg`.
 - **Homebrew formula** — `Formula/vibestats.rb` for `brew install trebeljahr/tap/vibestats`.
 - **Marketing site + sanitized demo + fumadocs docs** under `site/`.
+- **Live mode** — `vibestats live` (and `vibestats build --live` / `VIBESTATS_LIVE=1`) rebuilds dashboards by reading `~/.claude`, `~/.codex`, `~/.gemini` and the Cline/Goose dirs in place, skipping the ~2GB snapshot rsync. Seconds instead of minutes, and the result includes sessions from moments ago.
+- **Time pager** — the heatmap window (month / N days / calendar year) can be stepped backwards and forwards with ‹ › or the arrow keys, including past the first day of data. Windows render their whole span, so an empty period shows as an empty grid with zeroed stats instead of no chart.
+- **Staleness badge** — the dashboard header now reports whether it was built from a snapshot or live dirs, and shows an "N days old — refresh" badge when the build is more than a day old. The combined view also names any per-tool aggregate lagging behind the others.
 
 ### Changed
 
@@ -60,6 +47,8 @@ First public release. CLI + Tauri desktop app + npm package + Homebrew formula.
 - `snapshot.sh` accepts `VIBESTATS_DATA_DIR` env override; tries multiple known data roots per tool.
 - `serve.sh` binds `127.0.0.1` by default (was `0.0.0.0`).
 - Dashboard widens Tauri `assetProtocol` scope to cover `$HOME/**` and `/tmp/**` for env-overridden `DATA_ROOT`.
+- **`pnpm dev` shows real data.** The dev preview fetched a checked-in fixture, which silently froze it at the day the fixture was generated. It now loads a live-built payload from the dev server; `VIBESTATS_FIXTURE=1` restores the fixture for screenshots.
+- Refresh button rebuilds from the dev server when running under vite (it already invoked the snapshot+build pipeline in the desktop app).
 
 ### Fixed
 
@@ -68,6 +57,8 @@ First public release. CLI + Tauri desktop app + npm package + Homebrew formula.
 - `release-bump.mjs` ESM import path + only stages existing version files.
 - Heatmap month labels spilling back into prior month (only label first Monday of month, `date ≤ 7`).
 - Heatmap leading-month rendering — snap start to 1st of month so it renders full width.
+- Wide heatmaps (a full year is 53 columns) scroll horizontally instead of being clipped; the weekday labels stay pinned while they do.
+- Zero values render as `0` / `$0` rather than `+0`, `−0` and `$0.0000`.
 
 ### Security
 

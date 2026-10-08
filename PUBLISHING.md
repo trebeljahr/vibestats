@@ -15,12 +15,13 @@ All three pull from the same GitHub repo. The npm + Homebrew flows ship the CLI;
 gh repo create trebeljahr/vibestats --public --source=. --remote=origin --push
 ```
 
-### npm token
+### npm trusted publishing
+The first version was published from a logged-in machine (`npm publish --access public`). After that, CI publishes with npm trusted publishing (GitHub OIDC), so there is no `NPM_TOKEN` secret:
 ```bash
-npm login                             # browser flow, one-time
-npm token create --read-only=false    # NOT --read-only; needs publish
-gh secret set NPM_TOKEN               # paste the token; needed by .github/workflows/release.yml
+npm trust github @trebeljahr/vibestats --repo trebeljahr/vibestats --file release.yml
+npm trust list @trebeljahr/vibestats
 ```
+The `publish-npm` job skips the publish when the version is already on npm.
 
 ### Homebrew tap repo (one-time)
 A tap is just a GitHub repo named `homebrew-<name>` with `Formula/*.rb` files. No Homebrew account — piggybacks on GitHub.
@@ -31,22 +32,18 @@ git clone https://github.com/trebeljahr/homebrew-tap ~/projects/homebrew-tap
 mkdir -p ~/projects/homebrew-tap/Formula
 ```
 
-### Apple codesigning (optional, for distribution outside dev machines)
-Without signing, macOS users have to right-click → Open on first launch (Gatekeeper warning). For signed + notarized builds:
-
-1. Apple Developer account ($99/yr) → Certificates → "Developer ID Application" → export as .p12 with password
-2. Generate app-specific password at appleid.apple.com → Sign in & Security → App-Specific Passwords
-3. Set GitHub secrets:
-   ```bash
-   base64 -i cert.p12 | gh secret set APPLE_CERTIFICATE
-   gh secret set APPLE_CERTIFICATE_PASSWORD
-   gh secret set APPLE_SIGNING_IDENTITY        # e.g. "Developer ID Application: Rico Trebeljahr (TEAMID)"
-   gh secret set APPLE_ID                      # your Apple ID email
-   gh secret set APPLE_PASSWORD                # app-specific password
-   gh secret set APPLE_TEAM_ID                 # 10-char team ID
-   ```
-
-Defer this if you just want unsigned builds for now — everything still works locally and via `brew install`.
+### Apple codesigning
+Signed with the Ricos Labs LLC "Developer ID Application" certificate and notarized with an App Store Connect API key (no Apple ID password). Secrets:
+```bash
+base64 -i developer-id-application.p12 | gh secret set APPLE_CERTIFICATE
+gh secret set APPLE_CERTIFICATE_PASSWORD
+gh secret set APPLE_SIGNING_IDENTITY        # "Developer ID Application: Ricos Labs LLC (4BHY8H2J25)"
+gh secret set APPLE_TEAM_ID                 # 4BHY8H2J25
+gh secret set APPLE_API_KEY                 # App Store Connect key ID
+gh secret set APPLE_API_ISSUER              # App Store Connect issuer ID
+base64 -i AuthKey_<KEY_ID>.p8 | gh secret set APPLE_API_KEY_P8_BASE64
+```
+Without these secrets the macOS build is unsigned, and users must right-click → Open on first launch.
 
 ### Tauri update signing (optional, for auto-updates)
 If you want in-app auto-updates later:
@@ -73,7 +70,7 @@ Under the hood (mirrors hatchkit):
 The pushed tag triggers `.github/workflows/release.yml`, which:
 - Builds Tauri binaries for macOS arm64 + x64, Linux x64, Windows x64
 - Attaches DMG/AppImage/MSI to the GitHub Release for that tag
-- Publishes the npm package (yes, again — idempotent if the version already exists)
+- Publishes the npm package through trusted publishing, or skips it when the version is already on npm
 
 You don't have to do anything else for npm + desktop binaries.
 
