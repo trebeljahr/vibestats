@@ -40,37 +40,70 @@ const PRICING = DATA.pricing;
   }
 })();
 
-// First-run banner: only show if pricing was auto-detected AND user hasn't dismissed in last 7 days.
+// Plan-guess banner: shown when pricing.json holds an auto-detected plan, once
+// per guess. Either answer ends it for that exact guess (tier, price, start
+// date), so the same banner never comes back on a timer. A new or changed
+// guess is a new question and shows once. Inside the desktop app, "Looks
+// right" also clears `_autoDetected` in pricing.json, which ends it everywhere.
 (function setupAutoBanner() {
   const sub = PRICING.subscription;
   if (!sub || !sub._autoDetected) return;
-  const dismissedAt = Number(localStorage.getItem('vibestats:autoBannerDismissed') || 0);
-  if (Date.now() - dismissedAt < 7 * 24 * 3600 * 1000) return;
+  const answerKey = 'vibestats:autoBannerAnswered:' + [sub.tier, sub.monthly_usd, sub.started].join('|');
+  const readAnswer = () => {
+    try { return localStorage.getItem(answerKey); } catch (e) { return null; }
+  };
+  const writeAnswer = (answer) => {
+    try { localStorage.setItem(answerKey, answer); } catch (e) { /* storage blocked: the banner shows again next time */ }
+  };
+  if (readAnswer()) return;
   const banner = document.getElementById('autoBanner');
+  const msg = document.getElementById('autoBannerMsg');
+  const confirmBtn = document.getElementById('autoBannerConfirm');
+  const editBtn = document.getElementById('autoBannerDismiss');
   const sig = sub._signals || {};
   const mTok = sig.avgMonthlyTokens ? (sig.avgMonthlyTokens / 1e6).toFixed(0) + 'M' : '?';
   const opus = sig.opusShare != null ? (sig.opusShare * 100).toFixed(0) + '%' : '?';
-  document.getElementById('autoBannerMsg').innerHTML =
+  msg.innerHTML =
     'Guessed your plan: <b>' + escapeHtml(sub.tier) + '</b> ($' + escapeHtml(sub.monthly_usd) + '/mo, started ' + escapeHtml(sub.started) + '). ' +
     'Based on ' + escapeHtml(mTok) + ' tokens/mo · ' + escapeHtml(opus) + ' Opus. Cost multiple will be wrong if this is off.';
   banner.style.display = 'flex';
-  document.getElementById('autoBannerConfirm').onclick = () => {
-    localStorage.setItem('vibestats:autoBannerDismissed', String(Date.now()));
-    banner.style.display = 'none';
-    alert('Marked as correct. To persist: edit pricing.json and remove the `_autoDetected: true` line from the subscription block. Then the auto-detector will leave it alone.');
+  // The answer replaces the question in the banner itself, no dialog.
+  const answered = (text) => {
+    msg.textContent = text;
+    confirmBtn.style.display = 'none';
+    editBtn.style.display = 'none';
   };
-  document.getElementById('autoBannerDismiss').onclick = () => {
-    localStorage.setItem('vibestats:autoBannerDismissed', String(Date.now()));
-    banner.style.display = 'none';
-    // Inside Tauri, open the Settings panel directly. Outside (e.g. serve.sh),
-    // fall back to the instructional alert since there's no UI to launch.
+  confirmBtn.onclick = async () => {
+    writeAnswer('confirmed');
     if (window.__TAURI__ && window.__TAURI__.core) {
+      try {
+        const cfg = JSON.parse(await window.__TAURI__.core.invoke('read_config'));
+        if (cfg.subscription && cfg.subscription._autoDetected) {
+          delete cfg.subscription._autoDetected;
+          await window.__TAURI__.core.invoke('write_config', { contents: JSON.stringify(cfg, null, 2) + '\n' });
+        }
+        answered('Saved as your plan. The auto-detector will leave it alone.');
+        return;
+      } catch (e) {
+        answered('Marked as right here, but pricing.json could not be updated (' + e + '). Remove "_autoDetected": true from its subscription block to keep the guess.');
+        return;
+      }
+    }
+    answered('Marked as right in this browser. To keep the auto-detector from changing it, remove "_autoDetected": true from the subscription block in pricing.json.');
+  };
+  editBtn.onclick = () => {
+    writeAnswer('edit');
+    // Inside Tauri, open the Settings panel directly. Outside (e.g. serve.sh)
+    // there is no UI to launch, so say where the file is edited.
+    if (window.__TAURI__ && window.__TAURI__.core) {
+      banner.style.display = 'none';
       window.__TAURI__.core.invoke('open_settings').catch(e => {
-        alert('Could not open Settings: ' + e);
+        banner.style.display = 'flex';
+        answered('Could not open Settings: ' + e);
       });
       return;
     }
-    alert('Edit pricing.json directly to fix tier/monthly_usd/started. Remove _autoDetected:true so the guess does not overwrite your edit on the next snapshot.');
+    answered('Edit tier, monthly_usd and started in pricing.json, and remove "_autoDetected": true so the next snapshot does not overwrite your edit.');
   };
 })();
 

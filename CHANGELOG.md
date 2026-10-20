@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The plan-guess banner shows once per guess. "Looks right" or "Edit pricing.json" ends it for that guess, and it no longer comes back every 7 days. In the desktop app, "Looks right" also clears `_autoDetected` in `pricing.json`. The answer appears in the banner instead of a dialog. A new or changed guess shows the banner once.
+
 ## [0.1.0] - 2026-10-08
 
 First public release. CLI + Tauri desktop app + npm package + Homebrew formula.
