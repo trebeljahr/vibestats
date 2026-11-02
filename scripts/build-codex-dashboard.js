@@ -14,7 +14,7 @@ const { DATA_ROOT, DATA_DIR, ALIASES_PATH, ensureDataRoot } = require('./lib/pat
 const { renderTemplate } = require('./lib/render-template');
 const { resolveSources } = require('./lib/sources');
 const { writeEmptyState } = require('./lib/empty-state');
-const { pendingMergesCount } = require('./lib/pending-merges-count');
+const { pendingMergesCount, pendingMergeKeys } = require('./lib/pending-merges-count');
 const { loadMergedPricing } = require('./lib/pricing');
 const { extractLocFromCodexLine } = require('./lib/loc-codex');
 
@@ -286,6 +286,7 @@ const summary = {
   totalSessionsAllTime: totalSessions.size,
   unknownModels: [...unknownModels],
   pendingMergesCount: pendingMergesCount(),
+  pendingMergeKeys: pendingMergeKeys(),
   homePrefix: HOME_PREFIX,
 };
 

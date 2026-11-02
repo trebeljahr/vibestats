@@ -8,6 +8,7 @@
     "homePrefix": "-home-demo",
     "unknownModels": [],
     "pendingMergesCount": 0,
+    "pendingMergeKeys": [],
     "live": false
   },
   "heatmap": [

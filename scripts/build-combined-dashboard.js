@@ -7,7 +7,7 @@ const path = require('path');
 const { DATA_ROOT, DATA_DIR, ensureDataRoot } = require('./lib/paths');
 const { renderTemplate } = require('./lib/render-template');
 const { writeEmptyState } = require('./lib/empty-state');
-const { pendingMergesCount } = require('./lib/pending-merges-count');
+const { pendingMergesCount, pendingMergeKeys } = require('./lib/pending-merges-count');
 const { resolveSources } = require('./lib/sources');
 
 ensureDataRoot();
@@ -130,6 +130,7 @@ const summary = {
   totalLocDeletions,
   unknownModels,
   pendingMergesCount: pendingMergesCount(),
+  pendingMergeKeys: pendingMergeKeys(),
   homePrefix,
   perTool: Object.fromEntries(sources.map(s => [s.tool, s.agg.summary])),
 };

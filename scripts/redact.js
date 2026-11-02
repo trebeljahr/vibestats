@@ -125,6 +125,13 @@ function redactPayload(data) {
   // Strip homePrefix so the displayed username leaks nothing
   if (data.summary) data.summary.homePrefix = '-home-anon';
 
+  // Merge-candidate keys are unsalted hashes of project names, and the banner
+  // they serve is for the owner, not readers of a shared copy.
+  if (data.summary) {
+    delete data.summary.pendingMergeKeys;
+    for (const s of Object.values(data.summary.perTool || {})) delete s.pendingMergeKeys;
+  }
+
   return data;
 }
 

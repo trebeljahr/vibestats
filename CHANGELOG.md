@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - The plan-guess banner shows once per guess. "Looks right" or "Edit pricing.json" ends it for that guess, and it no longer comes back every 7 days. In the desktop app, "Looks right" also clears `_autoDetected` in `pricing.json`. The answer appears in the banner instead of a dialog. A new or changed guess shows the banner once.
+- The pending-merges banner shows once per candidate. Dismiss ends it for the candidates pending at that moment, and it no longer comes back every 7 days. A new candidate shows the banner once. Redacted dashboards do not show it.
 
 ## [0.1.0] - 2026-10-08
 

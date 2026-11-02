@@ -20,7 +20,7 @@ const { DATA_ROOT, DATA_DIR, ensureDataRoot } = require('./lib/paths');
 const { renderTemplate } = require('./lib/render-template');
 const { resolveSources } = require('./lib/sources');
 const { writeEmptyState } = require('./lib/empty-state');
-const { pendingMergesCount } = require('./lib/pending-merges-count');
+const { pendingMergesCount, pendingMergeKeys } = require('./lib/pending-merges-count');
 const { loadMergedPricing } = require('./lib/pricing');
 
 const HOME_PREFIX = os.homedir().replace(/\//g, '-');
@@ -301,6 +301,7 @@ const summary = {
   totalSessionsAllTime: totalSessions.size,
   unknownModels: [...unknownModels],
   pendingMergesCount: pendingMergesCount(),
+  pendingMergeKeys: pendingMergeKeys(),
   homePrefix: HOME_PREFIX,
   note: `Source: ${path.basename(dbPath)} (${rows.length} session rows)`,
 };

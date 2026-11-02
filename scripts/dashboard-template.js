@@ -107,20 +107,28 @@ const PRICING = DATA.pricing;
   };
 })();
 
-// Pending-merges banner: shown when detect-merges found medium-confidence merge candidates
-// the auto-merger couldn't resolve. 7-day dismiss like the pricing banner.
+// Pending-merges banner: shown when detect-merges found medium-confidence merge
+// candidates the auto-merger couldn't resolve, once per candidate. Dismiss ends
+// it for every candidate pending now, so the same banner never comes back on a
+// timer. A new candidate is a new question and shows it once.
 (function setupMergesBanner() {
   const n = DATA.summary && DATA.summary.pendingMergesCount;
   if (!n) return;
-  const dismissedAt = Number(localStorage.getItem('vibestats:mergesBannerDismissed') || 0);
-  if (Date.now() - dismissedAt < 7 * 24 * 3600 * 1000) return;
+  const keys = DATA.summary.pendingMergeKeys || [];
+  const storageKey = (key) => 'vibestats:mergesBannerDismissed:' + key;
+  const isDismissed = (key) => {
+    try { return !!localStorage.getItem(storageKey(key)); } catch (e) { return false; }
+  };
+  if (keys.every(isDismissed)) return;
   const banner = document.getElementById('mergesBanner');
   document.getElementById('mergesBannerMsg').innerHTML =
     n + ' potential project merge' + (n === 1 ? '' : 's') + ' detected. ' +
     'Review with <code>vibestats merges list</code>, then <code>vibestats merges accept &lt;id&gt;</code> or <code>reject &lt;id&gt;</code>.';
   banner.style.display = 'flex';
   document.getElementById('mergesBannerDismiss').onclick = () => {
-    localStorage.setItem('vibestats:mergesBannerDismissed', String(Date.now()));
+    try {
+      for (const key of keys) localStorage.setItem(storageKey(key), '1');
+    } catch (e) { /* storage blocked: the banner shows again next time */ }
     banner.style.display = 'none';
   };
 })();
