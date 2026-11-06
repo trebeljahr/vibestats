@@ -1,10 +1,18 @@
 # vibestats
 
-Local dashboard for your AI coding tool usage: Claude Code + Codex + optional claude.ai web chats. GitHub-style heatmap, per-day token + cost breakdown, "what would this have cost on API" vs subscription multiple.
+[![CI](https://github.com/trebeljahr/vibestats/actions/workflows/ci.yml/badge.svg)](https://github.com/trebeljahr/vibestats/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@trebeljahr/vibestats)](https://www.npmjs.com/package/@trebeljahr/vibestats)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**Privacy**: vibestats is 100% local. Zero outbound network calls except `vibestats fetch-web` and `vibestats prices update` (both opt-in). No telemetry, no auto-update check, no analytics. Your snapshots, dashboards, and configs live in `~/.vibestats/` at 0700/0600 perms.
+vibestats shows how you use Claude Code and Codex, day by day. It reads the transcripts these tools already keep on your disk and turns them into one dashboard.
 
-**Data sensitivity**: vibestats reads full Claude Code / Codex transcripts. Those files contain everything you typed into the tools — including any secrets you pasted (API keys, `.env` files, customer data). The generated HTML dashboards embed raw project names + timestamps. Do **not** commit `~/.vibestats/snapshots/` to git or post the dashboards on the public internet without running `vibestats redact` first (coming in v0.2).
+You get a GitHub-style heatmap of your active days, plus tokens and cost for each day. You also see what your usage would cost at pay-as-you-go API prices. A value multiple sets that cost against what your subscription cost over the same months. vibestats also reads Gemini CLI, Goose, Cline, Roo Code and Kilo Code, plus claude.ai web chats if you fetch them.
+
+Everything runs on your machine, with no account and no upload. Open the [demo with fictional data](https://vibestats.trebeljahr.com/demo/), or start with the [docs](https://vibestats.trebeljahr.com/docs/getting-started).
+
+![The vibestats dashboard with fictional data: twelve stat cards (active days, streaks, sessions, messages, lines changed, tokens, API cost, subscription paid, value multiple) above an activity heatmap from January to October.](docs/marketing/screenshots/dashboard-overview.webp)
+
+<sub>All screenshots use fictional data from [`scripts/marketing/demo-history.mjs`](scripts/marketing/demo-history.mjs).</sub>
 
 ## Install
 
@@ -38,10 +46,35 @@ cd vibestats
 # or  npm run tauri:dev            # desktop app dev mode
 ```
 
+## What you get
+
+- **Activity heatmap.** One square per day, colored by sessions, messages, tokens or API cost. Pick a range (month, 30 to 365 days, calendar year or all time) and step back through earlier windows with ‹ › or the arrow keys.
+- **Per-day breakdown.** Click a day to see its sessions, messages, tokens, API cost and lines changed, split by project and by model.
+- **Twelve stat cards** for the selected range: active days, current and longest streak, sessions, messages, lines added, removed and net, tokens, would-be API cost, subscription paid and the value multiple.
+- **Models table** with messages, input, output, cache reads, 5-minute and 1-hour cache writes and API cost per model.
+- **Top projects**, with sessions from git worktrees counted under their base project. Archived Claude Code projects are marked.
+- **Project merging.** `project-aliases.json` joins renamed projects, and `vibestats merges` lists likely renames for you to accept or reject.
+- **Shareable copies.** `vibestats redact` writes dashboards with hashed project names. See [Sharing a dashboard](#sharing-a-dashboard).
+- **Desktop app** for macOS, Windows and Linux, with a settings panel for your plan and prices.
+
+![Per-day breakdown dialog with fictional data: sessions, messages, tokens, API cost and lines changed for one day, then a projects table and a models table.](docs/marketing/screenshots/day-breakdown.webp)
+
+![Models table and top projects table with fictional data: per-model token counts, cache reads and writes and API cost, then projects ranked by sessions.](docs/marketing/screenshots/models-and-projects.webp)
+
+## Privacy
+
+vibestats runs locally. It makes no network calls except `vibestats fetch-web` and `vibestats prices update`, and both run only when you start them. There is no telemetry, no update check and no analytics. Snapshots, dashboards and configs live in `~/.vibestats/` with 0700/0600 permissions.
+
+vibestats reads full Claude Code and Codex transcripts. Those files hold everything you typed into the tools, including secrets you pasted (API keys, `.env` files, customer data). The generated dashboards contain raw project names and timestamps. Do **not** commit `~/.vibestats/snapshots/` to git. Do not post a dashboard on the public internet without running `vibestats redact` first. See [Keep personal history local](#keep-personal-history-local) and [PRIVACY.md](PRIVACY.md).
+
 ## What it reads
 
 - `~/.claude/projects/` + `~/.claude/projects-archive/` — Claude Code transcripts. Archive is included because the CLI auto-archives older project dirs and the built-in `/stats` widget can't see them.
 - `~/.codex/archived_sessions/` — Codex rollout jsonl. The 3GB `logs_2.sqlite` debug log is skipped on purpose.
+- `~/.gemini/tmp/` + `~/.gemini/history/` — Gemini CLI sessions. Gemini CLI stores no token counts locally, so these count sessions, messages and active days, at $0.
+- Goose `sessions.db` — from `$GOOSE_PATH_ROOT`, `~/Library/Application Support/Block/goose/sessions/` or `~/.local/share/goose/sessions/`. Needs Node 22 or later (`node:sqlite`).
+- Cline, Roo Code and Kilo Code task folders in VS Code and Cursor `globalStorage`, on macOS and Linux.
+- claude.ai web chats, only after you fetch them. See [Optional: claude.ai web chats](#optional-claudeai-web-chats).
 - `~/.gemini/antigravity/conversations/` — Gemini Antigravity protobuf (snapshotted for safekeeping; parser not yet written).
 
 Missing dirs are silently skipped, so this works whether you use one tool or all of them.
@@ -102,32 +135,32 @@ Caveat: the web API doesn't return per-message token counts. Web-chat cost is es
 
 ## Output files
 
+All written to your data dir (`~/.vibestats/` by default):
+
 - `dashboard.html` — Claude Code only
 - `codex-dashboard.html` — Codex only
+- `gemini-dashboard.html`, `goose-dashboard.html`, `cline-dashboard.html` — one per tool, when that tool's data exists
 - `claude-web-dashboard.html` — claude.ai web chats only (if fetched)
-- `combined-dashboard.html` — all of the above merged
+- `combined-dashboard.html` — all of the above merged. The app and `vibestats open` show this one.
 
-All four are standalone HTML files — data is inlined as JSON. Open in a browser, scp to a server, host on Vercel/Netlify, whatever. No backend.
+Each is a standalone HTML file with its data inlined as JSON. Open it in a browser. There is no backend.
 
-## Deploying
+## Sharing a dashboard
 
-Static files. Pick your favorite host:
+The dashboards contain your raw usage metadata: project names, timestamps and token counts. To share one, make a redacted copy first:
 
 ```bash
-# Vercel
-npx vercel --prod
-
-# Netlify
-npx netlify deploy --prod --dir=.
-
-# Or just push the HTMLs anywhere
+vibestats redact                          # write redacted-*.html with hashed project names
+vibestats redact --coarsen-dates=week     # also bucket the heatmap by week (or =month)
+vibestats redact --check                  # scan the latest snapshot for secret patterns
 ```
 
-The dashboard contains your raw usage metadata (project names, timestamps, token counts) — if you're putting it on the public internet, decide whether that's something you want exposed.
+Redacted files still show usage totals, costs and model names. Review each file before you share it. Copy only the reviewed HTML files into a new, empty directory before you upload them. Never deploy the repository or the data dir. The [sharing guide](https://vibestats.trebeljahr.com/docs/deploying-and-sharing) has the details.
 
 ## Known gaps
 
-- Gemini conversations are protobuf without a bundled `.proto` definition. Files captured for future parsing.
+- Gemini Antigravity conversations are protobuf without a bundled `.proto` definition. Files captured for future parsing.
+- Gemini CLI logs no token counts, so Gemini rows show $0.
 - Server-tool charges (web search at $10/1k, code execution runtime) are excluded — not exposed cleanly in the jsonl.
 - Claude fast-mode (6× premium on Opus 4.6/4.7) isn't detectable from jsonl. Real Claude cost is likely higher than reported.
 
@@ -152,13 +185,15 @@ Piecewise:
 VIBESTATS_LIVE=1 ./scripts/build-all.sh   # rebuild HTMLs straight from the live dirs
 ```
 
-Snapshots are dated dirs; nothing is destructive. Commit the repo if you want historical snapshots tracked.
+Snapshots are dated dirs; nothing is destructive. Keep them out of git: they hold full transcripts.
 
 `vibestats fetch-web` (claude.ai chats) writes into the newest snapshot, so that one tool is snapshot-only — in live mode its data comes from the last snapshot taken.
 
 ### Dev preview
 
-`pnpm dev` serves the dashboard from your **live** data (the dev server runs the live build on startup; the Refresh button re-runs it). Set `VIBESTATS_FIXTURE=1` to use the checked-in fictional `dev/dashboard-preview/sample-payload.json` instead — useful for screenshots and for working on the UI with no local history.
+`pnpm dev` serves the dashboard from your **live** data (the dev server runs the live build on startup; the Refresh button re-runs it). Set `VIBESTATS_FIXTURE=1` to use the checked-in fictional `dev/dashboard-preview/sample-payload.json` instead — useful for working on the UI with no local history.
+
+`npm run marketing:capture` rebuilds the README screenshots and the social preview cards in [`docs/marketing/`](docs/marketing/) from a generated fictional history. It never reads your own tool dirs. It needs Playwright with Chromium (see [docs/marketing/README.md](docs/marketing/README.md)).
 
 ## Keep personal history local
 
@@ -169,3 +204,26 @@ Run `npm run privacy:check` before committing or packaging source. This checks t
 Public demos use fictional data. Redacted dashboards still contain activity and cost information: review each file before sharing. Never deploy the repository or data directory as a website.
 
 For a source clone, enable the push guard with `git config core.hooksPath .githooks`. It checks the history being pushed for known private paths. Keep any pre-existing history containing personal data private; do not merge it into a clean public repository.
+
+## Project layout
+
+- `bin/cli.js` — the `vibestats` command
+- `scripts/` — snapshot, one builder per tool, the dashboard template, `redact`, `prices`, `merges`
+- `src-tauri/` — the desktop app
+- `site/` — [vibestats.trebeljahr.com](https://vibestats.trebeljahr.com): landing page, docs and the fictional demo
+- `fixtures/` — synthetic snapshots for CI
+- `docs/marketing/` — screenshots and social preview cards, all from fictional data
+
+Built with Node.js 18+ and no runtime dependencies. The dashboards are one HTML template with inline JavaScript. The desktop app uses Tauri 2. The site uses Next.js and Fumadocs.
+
+## Contributing
+
+Bug reports, parser requests for other tools and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). Report security issues privately as described in [SECURITY.md](SECURITY.md).
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
+## Support
+
+vibestats is free. If you want to support its development, you can do so at [ricos.site/donate](https://ricos.site/donate).
