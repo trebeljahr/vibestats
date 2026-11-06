@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>vibestats social preview</title>
+<!--
+  GitHub social preview, 1280x640. Three variants from one file:
+    template.html?v=a  screenshot-led (dark)
+    template.html?v=b  wordmark-led with the heatmap as a ribbon (dark)
+    template.html?v=c  light card with the heatmap on top
+  Rendered by scripts/marketing/capture.mjs. Images are the real dashboard
+  screenshots in ../screenshots/ (fictional data). Key text stays inside a
+  64px safe margin.
+-->
+<style>
+  @font-face { font-family: 'Inter'; font-weight: 400; src: url('fonts/Inter-Regular.ttf') format('truetype'); }
+  @font-face { font-family: 'Inter'; font-weight: 600; src: url('fonts/Inter-SemiBold.ttf') format('truetype'); }
+  @font-face { font-family: 'JetBrains Mono'; font-weight: 400; src: url('fonts/JetBrainsMono-Regular.ttf') format('truetype'); }
+  :root {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #8b949e; --card: #161b22; --border: #30363d;
+    --accent: #58a6ff; --g1: #0e4429; --g2: #006d32; --g3: #26a641; --g4: #39d353;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; height: 640px; overflow: hidden; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--fg); position: relative;
+         -webkit-font-smoothing: antialiased; }
+  .variant { display: none; position: absolute; inset: 0; }
+  body[data-v="a"] #a, body[data-v="b"] #b, body[data-v="c"] #c { display: block; }
+
+  .mark { display: flex; align-items: center; gap: 18px; }
+  .mark svg { flex: none; border-radius: 14px; }
+  .mark span { font-weight: 600; letter-spacing: -0.02em; }
+  .cmd { font-family: 'JetBrains Mono', monospace; display: inline-flex; align-items: center; gap: 12px;
+         border: 1px solid var(--border); background: var(--card); border-radius: 10px; padding: 12px 18px; }
+  .cmd .prompt { color: var(--g4); }
+  .shot { position: absolute; overflow: hidden; border: 1px solid var(--border); border-radius: 14px;
+          box-shadow: 0 30px 80px rgba(0,0,0,.55); background: var(--bg); }
+  .shot img { display: block; width: 100%; }
+
+  /* A: screenshot-led */
+  #a { background:
+         radial-gradient(900px 500px at 95% 10%, rgba(31,111,235,.20), transparent 60%),
+         radial-gradient(700px 420px at 70% 110%, rgba(38,166,65,.16), transparent 60%),
+         var(--bg); }
+  #a .mark { position: absolute; left: 64px; top: 64px; }
+  #a .mark span { font-size: 52px; }
+  #a h1 { position: absolute; left: 64px; top: 196px; width: 500px; font-size: 46px; line-height: 1.12;
+          font-weight: 600; letter-spacing: -0.025em; }
+  #a p { position: absolute; left: 64px; top: 362px; width: 470px; font-size: 25px; line-height: 1.4; color: var(--muted); }
+  #a .cmd { position: absolute; left: 64px; bottom: 64px; font-size: 22px; }
+  /* Bleeds off the right and bottom edges; shows the right side of the page
+     so the value-multiple card and the busiest months stay in view. */
+  #a .shot { left: 596px; top: 72px; width: 708px; height: 600px; }
+  #a .shot img { height: 100%; object-fit: cover; object-position: right top; }
+
+  /* B: wordmark-led, heatmap ribbon */
+  #b { background: radial-gradient(1000px 420px at 50% -10%, rgba(31,111,235,.18), transparent 65%), var(--bg); }
+  #b .center { position: absolute; left: 64px; right: 64px; top: 64px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  #b .mark span { font-size: 92px; }
+  #b h1 { margin-top: 26px; font-size: 38px; line-height: 1.25; font-weight: 400; letter-spacing: -0.015em; max-width: 1000px; }
+  #b h1 strong { font-weight: 600; }
+  #b .tools { margin-top: 18px; font-size: 22px; color: var(--muted); letter-spacing: .01em; }
+  #b .ribbon { position: absolute; left: 64px; right: 64px; top: 382px; height: 300px; overflow: hidden;
+               border: 1px solid var(--border); border-radius: 14px;
+               -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%); }
+  #b .ribbon img { display: block; width: 100%; }
+
+  /* C: light */
+  #c { background: #f6f8fa; color: #1f2328; }
+  #c .shot { left: 64px; top: 56px; width: 1152px; border-color: #d0d7de; box-shadow: 0 18px 50px rgba(31,35,40,.18); }
+  #c .mark { position: absolute; left: 64px; top: 400px; }
+  #c .mark span { font-size: 60px; }
+  #c .mark svg { box-shadow: 0 6px 18px rgba(31,35,40,.18); }
+  #c h1 { position: absolute; left: 560px; top: 392px; width: 656px; font-size: 34px; line-height: 1.25;
+          font-weight: 600; letter-spacing: -0.02em; }
+  #c p { position: absolute; left: 560px; top: 486px; width: 656px; font-size: 23px; line-height: 1.4; color: #59636e; }
+  #c .cmd { position: absolute; left: 64px; bottom: 64px; font-size: 21px; color: var(--fg); }
+</style>
+</head>
+<body>
+<template id="icon">
+  <svg viewBox="0 0 1024 1024" aria-hidden="true">
+    <rect width="1024" height="1024" rx="180" fill="#0d1117"/>
+    <rect x="140" y="640" width="140" height="244" rx="20" fill="#0e4429"/>
+    <rect x="320" y="500" width="140" height="384" rx="20" fill="#006d32"/>
+    <rect x="500" y="340" width="140" height="544" rx="20" fill="#26a641"/>
+    <rect x="680" y="160" width="140" height="724" rx="20" fill="#39d353"/>
+  </svg>
+</template>
+
+<section class="variant" id="a">
+  <div class="mark" data-icon="64"><span>vibestats</span></div>
+  <h1>Your Claude Code and Codex use, day by day.</h1>
+  <p>Tokens and cost per day, next to what your plan costs. Runs on your machine.</p>
+  <div class="cmd"><span class="prompt">$</span>npx @trebeljahr/vibestats</div>
+  <div class="shot"><img src="../screenshots/dashboard-overview.webp" alt=""></div>
+</section>
+
+<section class="variant" id="b">
+  <div class="center">
+    <div class="mark" data-icon="96"><span>vibestats</span></div>
+    <h1><strong>Your AI coding history, day by day,</strong> and what it would cost at API prices.</h1>
+    <div class="tools">Claude Code · Codex · Gemini CLI · Goose · Cline · claude.ai</div>
+  </div>
+  <div class="ribbon"><img src="../screenshots/activity-heatmap.webp" alt=""></div>
+</section>
+
+<section class="variant" id="c">
+  <div class="shot"><img src="../screenshots/activity-heatmap.webp" alt=""></div>
+  <div class="mark" data-icon="68"><span>vibestats</span></div>
+  <h1>See every active day of Claude Code and Codex in one heatmap.</h1>
+  <p>Built from the transcripts on your disk. They never leave your machine.</p>
+  <div class="cmd"><span class="prompt">$</span>npx @trebeljahr/vibestats</div>
+</section>
+
+<script>
+  const v = new URLSearchParams(location.search).get('v') || 'a';
+  document.body.dataset.v = v;
+  const icon = document.getElementById('icon').content.firstElementChild;
+  for (const el of document.querySelectorAll('[data-icon]')) {
+    const svg = icon.cloneNode(true);
+    svg.setAttribute('width', el.dataset.icon);
+    svg.setAttribute('height', el.dataset.icon);
+    el.prepend(svg);
+  }
+</script>
+</body>
+</html>

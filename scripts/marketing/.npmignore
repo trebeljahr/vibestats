@@ -1,0 +1,2 @@
+# Repo-only tooling: keep it out of the npm package (package.json "files" ships scripts/).
+*

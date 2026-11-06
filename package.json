@@ -34,7 +34,8 @@
     "release:major": "node scripts/release-prep.mjs && node scripts/release-bump.mjs major && npm run _release:finish",
     "_release:finish": "git push --follow-tags && npm publish --provenance --access public && npm install -g .",
     "privacy:check": "node scripts/privacy-check.js",
-    "prepack": "node scripts/privacy-check.js"
+    "prepack": "node scripts/privacy-check.js",
+    "marketing:capture": "node scripts/marketing/capture.mjs"
   },
   "keywords": [
     "claude",
