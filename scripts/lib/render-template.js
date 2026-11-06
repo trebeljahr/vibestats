@@ -25,6 +25,12 @@ function renderTemplate(payload, replacements = {}) {
   for (const [from, to] of Object.entries(replacements)) {
     html = html.replace(from, () => to);
   }
+  // The visible heading repeats the page <title>, so a per-tool rename of the
+  // title (e.g. "Codex stats") renames the heading too.
+  const title = html.match(/<title>([^<]*)<\/title>/);
+  if (title) {
+    html = html.replace('<span id="pageTitle">Claude Code stats</span>', () => '<span id="pageTitle">' + title[1] + '</span>');
+  }
   return html;
 }
 

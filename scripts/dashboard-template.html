@@ -4,11 +4,62 @@
 <meta charset="utf-8">
 <title>Claude Code stats</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230d1117'/%3E%3Crect x='14' y='62' width='14' height='24' rx='2' fill='%2339d353'/%3E%3Crect x='32' y='44' width='14' height='42' rx='2' fill='%2326a641'/%3E%3Crect x='50' y='28' width='14' height='58' rx='2' fill='%23006d32'/%3E%3Crect x='68' y='14' width='14' height='72' rx='2' fill='%230e4429'/%3E%3C/svg%3E">
+<script>
+/* Theme. "light" or "dark" in localStorage pins it; anything else follows the
+   OS (prefers-color-scheme). Runs before first paint so a pinned theme never
+   flashes the other one. The toggle in the header writes the key. */
+(function () {
+  var choice = null;
+  try { choice = localStorage.getItem('vibestats:theme'); } catch (e) { /* storage blocked: follow the OS */ }
+  if (choice === 'light' || choice === 'dark') document.documentElement.setAttribute('data-theme', choice);
+})();
+</script>
 <style>
+  /* Every colour on the page comes from these tokens. Dark is the default;
+     light applies when the OS asks for it (and nothing pins dark) or when the
+     toggle pins light. The two light blocks below must stay identical.
+     Text pairs meet WCAG AA (4.5:1) in both themes; the heatmap ramps are one
+     hue, monotone in lightness, and level 1 clears 2:1 against the card. */
   :root {
-    --bg: #0d1117; --fg: #e6edf3; --muted: #7d8590; --card: #161b22; --border: #30363d;
-    --accent: #58a6ff;
-    --c0: #161b22; --c1: #0e4429; --c2: #006d32; --c3: #26a641; --c4: #39d353;
+    color-scheme: dark;
+    --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --card: #161b22; --subtle: #1c2128; --border: #30363d;
+    --input-bg: #0d1117;
+    --accent: #58a6ff; --accent-soft: #1f6feb22; --highlight-end: #16191e;
+    --pill-bg: #262c36;
+    --warn-fg: #f0b429; --warn-bg: rgba(240,180,41,.12); --warn-border: rgba(240,180,41,.35);
+    --info-bg: #1f2937; --merge-bg: #2d2418; --merge-border: #d29922;
+    --btn-primary-bg: #238636; --btn-primary-fg: #ffffff;
+    --shadow: #00000080; --shadow-strong: #00000099; --backdrop: #00000099;
+    --cell-border: #ffffff08;
+    --c0: #161b22; --c1: #0f5c2e; --c2: #007f3a; --c3: #26a641; --c4: #39d353;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      color-scheme: light;
+      --bg: #f6f8fa; --fg: #1f2328; --muted: #59636e; --card: #ffffff; --subtle: #f6f8fa; --border: #d1d9e0;
+      --input-bg: #ffffff;
+      --accent: #0969da; --accent-soft: #ddf4ff; --highlight-end: #ffffff;
+      --pill-bg: #eff2f5;
+      --warn-fg: #9a6700; --warn-bg: #fff8c5; --warn-border: rgba(212,167,44,.5);
+      --info-bg: #ddf4ff; --merge-bg: #fff8c5; --merge-border: #d4a72c;
+      --btn-primary-bg: #1f883d; --btn-primary-fg: #ffffff;
+      --shadow: rgba(31,35,40,.15); --shadow-strong: rgba(31,35,40,.25); --backdrop: rgba(31,35,40,.45);
+      --cell-border: rgba(31,35,40,.06);
+      --c0: #ebedf0; --c1: #62c878; --c2: #38a556; --c3: #22803c; --c4: #14562a;
+    }
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #f6f8fa; --fg: #1f2328; --muted: #59636e; --card: #ffffff; --subtle: #f6f8fa; --border: #d1d9e0;
+    --input-bg: #ffffff;
+    --accent: #0969da; --accent-soft: #ddf4ff; --highlight-end: #ffffff;
+    --pill-bg: #eff2f5;
+    --warn-fg: #9a6700; --warn-bg: #fff8c5; --warn-border: rgba(212,167,44,.5);
+    --info-bg: #ddf4ff; --merge-bg: #fff8c5; --merge-border: #d4a72c;
+    --btn-primary-bg: #1f883d; --btn-primary-fg: #ffffff;
+    --shadow: rgba(31,35,40,.15); --shadow-strong: rgba(31,35,40,.25); --backdrop: rgba(31,35,40,.45);
+    --cell-border: rgba(31,35,40,.06);
+    --c0: #ebedf0; --c1: #62c878; --c2: #38a556; --c3: #22803c; --c4: #14562a;
   }
   * { box-sizing: border-box; }
   body { font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--fg); margin: 0; padding: 32px; max-width: 1280px; }
@@ -19,15 +70,15 @@
   /* Age of the underlying build — deliberately loud, a stale dashboard is
      otherwise indistinguishable from a current one. */
   .stale-badge { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 12px;
-                 color: #f0b429; background: rgba(240,180,41,.12); border: 1px solid rgba(240,180,41,.35); }
-  code { background: #1c2128; padding: 1px 6px; border-radius: 3px; font-size: 12px; }
+                 color: var(--warn-fg); background: var(--warn-bg); border: 1px solid var(--warn-border); }
+  code { background: var(--subtle); padding: 1px 6px; border-radius: 3px; font-size: 12px; }
   .grid { display: grid; gap: 16px; }
   .stats { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); margin: 16px 0; }
   .stat { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
   .stat .num { font-size: 26px; font-weight: 600; }
   .stat .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
   .stat .lbl { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; margin-top: 6px; }
-  .stat.highlight { background: linear-gradient(135deg, #1f6feb22 0%, #16191e 100%); border-color: var(--accent); }
+  .stat.highlight { background: linear-gradient(135deg, var(--accent-soft) 0%, var(--highlight-end) 100%); border-color: var(--accent); }
   .stat.highlight .num { color: var(--accent); }
   .controls { display: flex; gap: 8px; align-items: center; margin: 12px 0; flex-wrap: wrap; }
   /* Window pager. Paging past the first day of data is allowed on purpose —
@@ -53,7 +104,7 @@
   .month-row { height: 16px; font-size: 11px; color: var(--muted); position: relative; margin-bottom: 6px; font-weight: 600; }
   .month-label { position: absolute; top: 0; white-space: nowrap; }
   .cells { display: grid; grid-template-rows: repeat(7, 22px); grid-auto-flow: column; grid-auto-columns: 22px; gap: 4px; }
-  .cell { width: 22px; height: 22px; border-radius: 3px; background: var(--c0); border: 1px solid #ffffff08; }
+  .cell { width: 22px; height: 22px; border-radius: 3px; background: var(--c0); border: 1px solid var(--cell-border); }
   .cell.l1 { background: var(--c1); } .cell.l2 { background: var(--c2); }
   .cell.l3 { background: var(--c3); } .cell.l4 { background: var(--c4); }
   .cell:hover { outline: 1px solid var(--fg); border-color: transparent; cursor: pointer; }
@@ -63,17 +114,17 @@
 
   table { border-collapse: collapse; width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
   th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; font-size: 13px; }
-  th { background: #1c2128; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  th { background: var(--subtle); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
   tr:last-child td { border-bottom: none; }
   td.num, th.num { text-align: right; }
-  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 10px; background: #30363d; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
-  .pill.live { background: #1f6feb22; color: var(--accent); }
-  #tooltip { position: absolute; background: #1c2128; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 12px; pointer-events: none; display: none; white-space: nowrap; z-index: 10; box-shadow: 0 4px 12px #00000080; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 10px; background: var(--pill-bg); color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+  .pill.live { background: var(--accent-soft); color: var(--accent); }
+  #tooltip { position: absolute; background: var(--subtle); color: var(--fg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 12px; pointer-events: none; display: none; white-space: nowrap; z-index: 10; box-shadow: 0 4px 12px var(--shadow); }
   .footnote { font-size: 11px; color: var(--muted); margin-top: 16px; }
 
-  #dayBackdrop { position: fixed; inset: 0; background: #00000099; display: none; z-index: 50; }
+  #dayBackdrop { position: fixed; inset: 0; background: var(--backdrop); display: none; z-index: 50; }
   #dayBackdrop.open { display: block; }
-  #dayPanel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(720px, calc(100vw - 48px)); max-height: calc(100vh - 64px); overflow-y: auto; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 24px; z-index: 51; display: none; box-shadow: 0 20px 60px #00000099; }
+  #dayPanel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(720px, calc(100vw - 48px)); max-height: calc(100vh - 64px); overflow-y: auto; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 24px; z-index: 51; display: none; box-shadow: 0 20px 60px var(--shadow-strong); }
   #dayPanel.open { display: block; }
   .day-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
   .day-head h3 { margin: 0; font-size: 18px; font-weight: 600; }
@@ -81,7 +132,7 @@
   .day-close { background: transparent; border: 1px solid var(--border); color: var(--fg); border-radius: 6px; padding: 4px 10px; cursor: pointer; font: inherit; }
   .day-close:hover { border-color: var(--accent); }
   .day-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 18px; }
-  .day-stat { background: #1c2128; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+  .day-stat { background: var(--subtle); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
   .day-stat .num { font-size: 18px; font-weight: 600; }
   .day-stat .lbl { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; margin-top: 2px; }
   .day-section h4 { margin: 16px 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
@@ -97,16 +148,33 @@
   .icon-btn svg { display: block; }
   .icon-btn.is-loading svg { animation: spin 0.8s linear infinite; }
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  /* Theme toggle: one segmented control, System / Light / Dark. */
+  .theme-toggle { display: inline-flex; align-self: stretch; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .theme-toggle button { background: transparent; color: var(--muted); border: 0; border-radius: 0; padding: 0 10px; display: inline-flex; align-items: center; }
+  .theme-toggle button + button { border-left: 1px solid var(--border); }
+  .theme-toggle button:hover { color: var(--fg); border-color: var(--border); }
+  .theme-toggle button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+  .theme-toggle button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .theme-toggle svg { display: block; }
+
+  /* Notices above the controls. JS shows one by setting display: flex. */
+  .banner { display: none; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin: 12px 0; font-size: 13px; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .banner-info { background: var(--info-bg); border-color: var(--accent); }
+  .banner-merge { background: var(--merge-bg); border-color: var(--merge-border); }
+  .banner-icon { font-size: 18px; }
+  .banner-msg { flex: 1; }
+  .banner .btn-primary { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border: 0; padding: 6px 14px; }
+  .banner .btn-quiet { background: transparent; color: var(--muted); padding: 6px 14px; }
   .help-icon { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; border: 1px solid currentColor; font-size: 9px; margin-left: 4px; cursor: help; opacity: .6; vertical-align: middle; }
 
   /* Grouping editor modal — mirrors #dayPanel pattern */
-  #groupingBackdrop { position: fixed; inset: 0; background: #00000099; display: none; z-index: 50; }
+  #groupingBackdrop { position: fixed; inset: 0; background: var(--backdrop); display: none; z-index: 50; }
   #groupingBackdrop.open { display: block; }
-  #groupingPanel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(900px, calc(100vw - 48px)); max-height: calc(100vh - 64px); overflow-y: auto; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 24px; z-index: 51; display: none; box-shadow: 0 20px 60px #00000099; }
+  #groupingPanel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(900px, calc(100vw - 48px)); max-height: calc(100vh - 64px); overflow-y: auto; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 24px; z-index: 51; display: none; box-shadow: 0 20px 60px var(--shadow-strong); }
   #groupingPanel.open { display: block; }
   #groupingPanel table { border: 1px solid var(--border); border-radius: 6px; }
   #groupingPanel th, #groupingPanel td { padding: 6px 10px; font-size: 12px; vertical-align: top; }
-  #groupingPanel input[type=text], #groupingPanel textarea { width: 100%; background: #0d1117; color: var(--fg); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font: inherit; font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
+  #groupingPanel input[type=text], #groupingPanel textarea { width: 100%; background: var(--input-bg); color: var(--fg); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font: inherit; font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
   #groupingPanel textarea { min-height: 48px; resize: vertical; }
   #groupingPanel .grouping-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; flex-wrap: wrap; }
   #groupingPanel .grouping-note { font-size: 11px; color: var(--muted); margin-top: 12px; }
@@ -116,7 +184,27 @@
 </head>
 <body>
 <div class="header-row">
-  <h1>Claude Code stats <span class="muted" style="font-size:14px;font-weight:normal" id="snapshotMeta"></span></h1>
+  <h1><span id="pageTitle">Claude Code stats</span> <span class="muted" style="font-size:14px;font-weight:normal" id="snapshotMeta"></span></h1>
+  <div id="themeToggle" class="theme-toggle" role="group" aria-label="Color theme">
+    <button type="button" data-theme-choice="system" aria-pressed="true" title="Theme: follow the system setting" aria-label="System theme">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="1.75" y="2.5" width="12.5" height="8.5" rx="1.5"/>
+        <path d="M5.5 14h5"/>
+        <path d="M8 11v3"/>
+      </svg>
+    </button>
+    <button type="button" data-theme-choice="light" aria-pressed="false" title="Theme: light" aria-label="Light theme">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="8" cy="8" r="3"/>
+        <path d="M8 1.25v1.5M8 13.25v1.5M1.25 8h1.5M13.25 8h1.5M3.2 3.2l1.06 1.06M11.74 11.74l1.06 1.06M3.2 12.8l1.06-1.06M11.74 4.26l1.06-1.06"/>
+      </svg>
+    </button>
+    <button type="button" data-theme-choice="dark" aria-pressed="false" title="Theme: dark" aria-label="Dark theme">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M13.5 9.6A5.75 5.75 0 0 1 6.4 2.5a5.75 5.75 0 1 0 7.1 7.1z"/>
+      </svg>
+    </button>
+  </div>
   <button id="refreshBtn" class="icon-btn" title="Refresh data (re-run snapshot + rebuild)" aria-label="Refresh">
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M13.5 2.5v3h-3"/>
@@ -138,17 +226,17 @@
   </button>
 </div>
 
-<div id="autoBanner" style="display:none;background:#1f2937;border:1px solid #58a6ff;border-radius:8px;padding:12px 16px;margin:12px 0;font-size:13px;align-items:center;gap:12px;flex-wrap:wrap">
-  <span style="font-size:18px">⚙️</span>
-  <span id="autoBannerMsg" style="flex:1"></span>
-  <button id="autoBannerConfirm" style="background:#238636;color:#fff;border:0;padding:6px 14px;border-radius:6px;cursor:pointer;font:inherit">Looks right</button>
-  <button id="autoBannerDismiss" style="background:transparent;color:var(--muted);border:1px solid var(--border);padding:6px 14px;border-radius:6px;cursor:pointer;font:inherit">Edit pricing.json</button>
+<div id="autoBanner" class="banner banner-info">
+  <span class="banner-icon">⚙️</span>
+  <span id="autoBannerMsg" class="banner-msg"></span>
+  <button id="autoBannerConfirm" class="btn-primary">Looks right</button>
+  <button id="autoBannerDismiss" class="btn-quiet">Edit pricing.json</button>
 </div>
 
-<div id="mergesBanner" style="display:none;background:#2d2418;border:1px solid #d29922;border-radius:8px;padding:12px 16px;margin:12px 0;font-size:13px;align-items:center;gap:12px;flex-wrap:wrap">
-  <span style="font-size:18px">🔀</span>
-  <span id="mergesBannerMsg" style="flex:1"></span>
-  <button id="mergesBannerDismiss" style="background:transparent;color:var(--muted);border:1px solid var(--border);padding:6px 14px;border-radius:6px;cursor:pointer;font:inherit">Dismiss</button>
+<div id="mergesBanner" class="banner banner-merge">
+  <span class="banner-icon">🔀</span>
+  <span id="mergesBannerMsg" class="banner-msg"></span>
+  <button id="mergesBannerDismiss" class="btn-quiet">Dismiss</button>
 </div>
 
 <div class="controls">

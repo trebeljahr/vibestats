@@ -4,13 +4,20 @@
 <meta charset="utf-8">
 <title>Vibestats</title>
 <style>
-  body { margin: 0; background: #0d1117; color: #e6edf3; font: 14px/1.5 -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+  /* Same tokens as the dashboard. The splash follows the OS theme only: the
+     dashboard's own toggle lives on a different origin, so its choice is not
+     readable here. */
+  :root { color-scheme: dark; --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --card: #161b22; --border: #30363d; --spin: #39d353; --err: #ff6b6b; }
+  @media (prefers-color-scheme: light) {
+    :root { color-scheme: light; --bg: #f6f8fa; --fg: #1f2328; --muted: #59636e; --card: #ffffff; --border: #d1d9e0; --spin: #22803c; --err: #d1242f; }
+  }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
   h1 { font-size: 28px; margin: 0 0 8px; }
-  p { color: #7d8590; margin: 4px 0; }
-  .spinner { width: 32px; height: 32px; border: 3px solid #30363d; border-top-color: #39d353; border-radius: 50%; animation: spin 1s linear infinite; margin-top: 24px; }
+  p { color: var(--muted); margin: 4px 0; }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--spin); border-radius: 50%; animation: spin 1s linear infinite; margin-top: 24px; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .log { margin-top: 24px; max-height: 240px; overflow: auto; font: 11px monospace; color: #7d8590; padding: 12px; background: #161b22; border-radius: 6px; min-width: 480px; max-width: 80%; white-space: pre-wrap; }
-  .err { color: #ff6b6b; }
+  .log { margin-top: 24px; max-height: 240px; overflow: auto; font: 11px monospace; color: var(--muted); padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; min-width: 480px; max-width: 80%; white-space: pre-wrap; }
+  .err { color: var(--err); }
 </style>
 </head>
 <body>

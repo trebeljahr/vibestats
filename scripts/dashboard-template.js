@@ -1,6 +1,43 @@
 const DATA = window.__VIBESTATS_DATA;
 const PRICING = DATA.pricing;
 
+// Theme toggle. "System" removes the pin and lets prefers-color-scheme decide;
+// "Light" and "Dark" pin the theme in this browser. The inline script in the
+// template's <head> applies a pinned theme before first paint; this keeps the
+// buttons in sync and follows changes made in another tab.
+(function setupThemeToggle() {
+  const KEY = 'vibestats:theme';
+  const root = document.documentElement;
+  const buttons = [...document.querySelectorAll('#themeToggle [data-theme-choice]')];
+  if (!buttons.length) return;
+  const read = () => {
+    try {
+      const v = localStorage.getItem(KEY);
+      return v === 'light' || v === 'dark' ? v : 'system';
+    } catch (e) { return 'system'; }
+  };
+  const apply = (choice) => {
+    if (choice === 'light' || choice === 'dark') root.setAttribute('data-theme', choice);
+    else root.removeAttribute('data-theme');
+    for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.themeChoice === choice));
+  };
+  for (const b of buttons) {
+    b.addEventListener('click', () => {
+      const choice = b.dataset.themeChoice;
+      try {
+        if (choice === 'system') localStorage.removeItem(KEY);
+        else localStorage.setItem(KEY, choice);
+      } catch (e) { /* storage blocked: the choice lasts until the page reloads */ }
+      apply(choice);
+    });
+  }
+  window.addEventListener('storage', (e) => { if (e.key === KEY) apply(read()); });
+  // Without storage the <head> script found nothing either, so the page is on
+  // the system theme and "system" is the honest state to show.
+  const pinned = root.getAttribute('data-theme');
+  apply(pinned === 'light' || pinned === 'dark' ? pinned : read());
+})();
+
 // Header meta. A dashboard is built from a point-in-time source (a snapshot
 // copy, or the live dirs read at build time), and nothing re-reads it while the
 // page is open — so state the age loudly. A stale build looks identical to a
@@ -133,8 +170,13 @@ const PRICING = DATA.pricing;
   };
 })();
 
+// Gemini CLI, Goose and the Cline family are bring-your-own-key: their
+// per-tool payloads carry `subscription: null`, so nothing below may assume one.
+const SUB = PRICING.subscription || null;
 const footnoteBits = [
-  'Subscription: ' + escapeHtml(PRICING.subscription.tier) + ' @ $' + escapeHtml(PRICING.subscription.monthly_usd) + '/mo, started ' + escapeHtml(PRICING.subscription.started) + '. Edit pricing.json to adjust.',
+  SUB
+    ? 'Subscription: ' + escapeHtml(SUB.tier) + ' @ $' + escapeHtml(SUB.monthly_usd) + '/mo, started ' + escapeHtml(SUB.started) + '. Edit pricing.json to adjust.'
+    : 'No subscription is set for this tool, so there is no value multiple.',
   'Costs exclude server-tool charges (web search at $10/1k, code execution runtime) which the jsonl does not expose cleanly.',
 ];
 if (DATA.summary.unknownModels && DATA.summary.unknownModels.length) {
@@ -260,10 +302,11 @@ function computeFiltered(range) {
 }
 
 function subscriptionPaidUntil(throughDay) {
-  const start = new Date(PRICING.subscription.started + 'T00:00:00Z');
+  if (!SUB || !SUB.started) return 0;
+  const start = new Date(SUB.started + 'T00:00:00Z');
   const end = throughDay ? new Date(throughDay + 'T00:00:00Z') : new Date();
   const months = Math.max(0, (end - start) / (1000 * 60 * 60 * 24 * 30.44));
-  return months * PRICING.subscription.monthly_usd;
+  return months * SUB.monthly_usd;
 }
 
 function renderStats(f, rangeVal, range) {
@@ -294,8 +337,8 @@ function renderStats(f, rangeVal, range) {
     { num: netStr, lbl: 'Net lines', sub: 'added − removed' },
     { num: fmtTokens(f.tokens), lbl: 'Tokens' },
     { num: fmtUsd(f.cost), lbl: 'API cost (would-be)', sub: 'pay-as-you-go' },
-    { num: fmtUsd(subCost), lbl: 'Subscription paid', sub: PRICING.subscription.tier },
-    { num: multiple.toFixed(1) + '×', lbl: 'Value multiple', sub: 'API ÷ subscription', highlight: true },
+    { num: SUB ? fmtUsd(subCost) : '—', lbl: 'Subscription paid', sub: SUB ? escapeHtml(SUB.tier) : 'none set' },
+    { num: subCost > 0 ? multiple.toFixed(1) + '×' : '—', lbl: 'Value multiple', sub: 'API ÷ subscription', highlight: true },
   ];
   grid.innerHTML = cards.map(c => {
     const sub = c.sub ? '<div class="sub">' + c.sub + '</div>' : '';
@@ -728,6 +771,9 @@ function renderProjects(range) {
     messages: p.messages,
     tokens: p.tokens,
     archived: p.archived,
+    worktrees: p.worktrees,
+    mergedFrom: p.mergedFrom,
+    tools: p.tools,
     activeDays: (range.from || range.to) ? p.days.filter(d => inRange(d, range)).length : p.days.length,
   })).sort((a, b) => b.sessions - a.sessions).slice(0, 40);
 
