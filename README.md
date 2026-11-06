@@ -10,7 +10,11 @@ You get a GitHub-style heatmap of your active days, plus tokens and cost for eac
 
 Everything runs on your machine, with no account and no upload. Open the [demo with fictional data](https://vibestats.trebeljahr.com/demo/), or start with the [docs](https://vibestats.trebeljahr.com/docs/getting-started).
 
-![The vibestats dashboard with fictional data: twelve stat cards (active days, streaks, sessions, messages, lines changed, tokens, API cost, subscription paid, value multiple) above an activity heatmap from January to October.](docs/marketing/screenshots/dashboard-overview.webp)
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/marketing/screenshots/dashboard-overview-light.webp">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/marketing/screenshots/dashboard-overview.webp">
+  <img alt="The vibestats dashboard with fictional data: twelve stat cards (active days, streaks, sessions, messages, lines changed, tokens, API cost, subscription paid, value multiple) above an activity heatmap from January to October." src="docs/marketing/screenshots/dashboard-overview.webp">
+</picture>
 
 <sub>All screenshots use fictional data from [`scripts/marketing/demo-history.mjs`](scripts/marketing/demo-history.mjs).</sub>
 
@@ -55,11 +59,20 @@ cd vibestats
 - **Top projects**, with sessions from git worktrees counted under their base project. Archived Claude Code projects are marked.
 - **Project merging.** `project-aliases.json` joins renamed projects, and `vibestats merges` lists likely renames for you to accept or reject.
 - **Shareable copies.** `vibestats redact` writes dashboards with hashed project names. See [Sharing a dashboard](#sharing-a-dashboard).
+- **Light and dark themes.** The dashboard follows your system setting. A toggle in the header pins light or dark.
 - **Desktop app** for macOS, Windows and Linux, with a settings panel for your plan and prices.
 
-![Per-day breakdown dialog with fictional data: sessions, messages, tokens, API cost and lines changed for one day, then a projects table and a models table.](docs/marketing/screenshots/day-breakdown.webp)
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/marketing/screenshots/day-breakdown-light.webp">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/marketing/screenshots/day-breakdown.webp">
+  <img alt="Per-day breakdown dialog with fictional data: sessions, messages, tokens, API cost and lines changed for one day, then a projects table and a models table." src="docs/marketing/screenshots/day-breakdown.webp">
+</picture>
 
-![Models table and top projects table with fictional data: per-model token counts, cache reads and writes and API cost, then projects ranked by sessions.](docs/marketing/screenshots/models-and-projects.webp)
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/marketing/screenshots/models-and-projects-light.webp">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/marketing/screenshots/models-and-projects.webp">
+  <img alt="Models table and top projects table with fictional data: per-model token counts, cache reads and writes and API cost, then projects ranked by sessions." src="docs/marketing/screenshots/models-and-projects.webp">
+</picture>
 
 ## Privacy
 

@@ -3,59 +3,99 @@
   "data": "Fictional. Every project name, path and number comes from a seeded generator, not from real usage.",
   "files": [
     {
-      "file": "screenshots/activity-heatmap.webp",
+      "file": "screenshots/activity-heatmap-light.webp",
+      "theme": "light",
       "width": 2432,
       "height": 542,
-      "bytes": 54908,
-      "sha256": "c3d653a91328a4c026219098756786cf6945547b5cbfa923b66ac0b834f09212",
-      "source": "combined-dashboard.html built by scripts/build-all.sh from the fictional history in scripts/marketing/demo-history.mjs (snapshot 2026-10-31), captured by scripts/marketing/capture.mjs in headless Chromium at 1280x900, scale 2"
+      "bytes": 63904,
+      "sha256": "f7bba92dcb8f3230d173e2bc7e4797b51c10bab2cf0a442124e98936a83c3489",
+      "source": "combined-dashboard.html built by scripts/build-all.sh from the fictional history in scripts/marketing/demo-history.mjs (snapshot 2026-10-31), captured by scripts/marketing/capture.mjs in headless Chromium at 1280x900, scale 2, with prefers-color-scheme set to the listed theme"
+    },
+    {
+      "file": "screenshots/activity-heatmap.webp",
+      "theme": "dark",
+      "width": 2432,
+      "height": 542,
+      "bytes": 56274,
+      "sha256": "3717e1fc085f6c9102adef15aed111961d6ce7a485d66eaa9083085e5bf48836",
+      "source": "combined-dashboard.html built by scripts/build-all.sh from the fictional history in scripts/marketing/demo-history.mjs (snapshot 2026-10-31), captured by scripts/marketing/capture.mjs in headless Chromium at 1280x900, scale 2, with prefers-color-scheme set to the listed theme"
+    },
+    {
+      "file": "screenshots/dashboard-overview-light.webp",
+      "theme": "light",
+      "width": 2560,
+      "height": 1800,
+      "bytes": 174578,
+      "sha256": "a3c4705429b5c8caa54bff8c00617fa43aac8e46fe062dc1219bcabd5b0d47a5",
+      "source": "combined-dashboard.html built by scripts/build-all.sh from the fictional history in scripts/marketing/demo-history.mjs (snapshot 2026-10-31), captured by scripts/marketing/capture.mjs in headless Chromium at 1280x900, scale 2, with prefers-color-scheme set to the listed theme"
     },
     {
       "file": "screenshots/dashboard-overview.webp",
+      "theme": "dark",
       "width": 2560,
       "height": 1800,
-      "bytes": 154492,
-      "sha256": "d071f20047359825456adeeb2bb216b92a651d47b04454d680465bededfb5311",
-      "source": "combined-dashboard.html built by scripts/build-all.sh from the fictional history in scripts/marketing/demo-history.mjs (snapshot 2026-10-31), captured by scripts/marketing/capture.mjs in headless Chromium at 1280x900, scale 2"
+      "bytes": 158516,
+      "sha256": "d1c0065497e0baa2d76f3d7644cfc89dcfea42c5b359f8ccd81c2d57d3f56240",
+      "source": "combined-dashboard.html built by scripts/build-all.sh from the fictional history in scripts/marketing/demo-history.mjs (snapshot 2026-10-31), captured by scripts/marketing/capture.mjs in headless Chromium at 1280x900, scale 2, with prefers-color-scheme set to the listed theme"
+    },
+    {
+      "file": "screenshots/day-breakdown-light.webp",
+      "theme": "light",
+      "width": 2560,
+      "height": 1800,
+      "bytes": 154178,
+      "sha256": "aab1aab60c60767d1e79d78c3bc9d798461aca32cdcdcbb58be91a0f4971f3c8",
+      "source": "combined-dashboard.html built by scripts/build-all.sh from the fictional history in scripts/marketing/demo-history.mjs (snapshot 2026-10-31), captured by scripts/marketing/capture.mjs in headless Chromium at 1280x900, scale 2, with prefers-color-scheme set to the listed theme"
     },
     {
       "file": "screenshots/day-breakdown.webp",
+      "theme": "dark",
       "width": 2560,
       "height": 1800,
-      "bytes": 127494,
-      "sha256": "44e3e66c99268096016900a18fdb108e82cce45967dee7696ef2053ea7518d01",
-      "source": "combined-dashboard.html built by scripts/build-all.sh from the fictional history in scripts/marketing/demo-history.mjs (snapshot 2026-10-31), captured by scripts/marketing/capture.mjs in headless Chromium at 1280x900, scale 2"
+      "bytes": 131134,
+      "sha256": "14516a40dc9feaefc2bb095dffd1562ac28603adcedc8d8598f02e029e76e3f8",
+      "source": "combined-dashboard.html built by scripts/build-all.sh from the fictional history in scripts/marketing/demo-history.mjs (snapshot 2026-10-31), captured by scripts/marketing/capture.mjs in headless Chromium at 1280x900, scale 2, with prefers-color-scheme set to the listed theme"
+    },
+    {
+      "file": "screenshots/models-and-projects-light.webp",
+      "theme": "light",
+      "width": 2560,
+      "height": 1800,
+      "bytes": 150080,
+      "sha256": "dfe4cb965654ed7317d192b2ad3f7c61a0b7b80da34a6edf3f3fccedff296178",
+      "source": "combined-dashboard.html built by scripts/build-all.sh from the fictional history in scripts/marketing/demo-history.mjs (snapshot 2026-10-31), captured by scripts/marketing/capture.mjs in headless Chromium at 1280x900, scale 2, with prefers-color-scheme set to the listed theme"
     },
     {
       "file": "screenshots/models-and-projects.webp",
+      "theme": "dark",
       "width": 2560,
       "height": 1800,
-      "bytes": 129308,
-      "sha256": "23d6e176ad6a9c0bfc97c11b833834b992508c4a88030a417da02edb0f4948da",
-      "source": "combined-dashboard.html built by scripts/build-all.sh from the fictional history in scripts/marketing/demo-history.mjs (snapshot 2026-10-31), captured by scripts/marketing/capture.mjs in headless Chromium at 1280x900, scale 2"
+      "bytes": 137236,
+      "sha256": "7edafc38445901b2b2669971b280ead3190c8011e4a3c6ce8311271ee1151624",
+      "source": "combined-dashboard.html built by scripts/build-all.sh from the fictional history in scripts/marketing/demo-history.mjs (snapshot 2026-10-31), captured by scripts/marketing/capture.mjs in headless Chromium at 1280x900, scale 2, with prefers-color-scheme set to the listed theme"
     },
     {
       "file": "social-preview/social-preview-a.png",
       "width": 1280,
       "height": 640,
-      "bytes": 200578,
-      "sha256": "f05ca6dbd5eb7be63dbfe56f0ce1dda7711c1389841219bee407c7b3150d1c5f",
+      "bytes": 184272,
+      "sha256": "b0b6eb8be609a8be4caa164856e2f378f3fb981f6d1fbb5e6b74c453f0a203c3",
       "source": "social-preview/template.html rendered by scripts/marketing/capture.mjs at 1280x640, using the screenshots above"
     },
     {
       "file": "social-preview/social-preview-b.png",
       "width": 1280,
       "height": 640,
-      "bytes": 231818,
-      "sha256": "c3a43ef8013ae60667ab9c2e359a282905a72bffcff49ef97a28f9619bdc6961",
+      "bytes": 206616,
+      "sha256": "dc4a1c0b084701f3868b037f19e7aa3c2718680d63f408f70139b23e98cd7732",
       "source": "social-preview/template.html rendered by scripts/marketing/capture.mjs at 1280x640, using the screenshots above"
     },
     {
       "file": "social-preview/social-preview-c.png",
       "width": 1280,
       "height": 640,
-      "bytes": 173193,
-      "sha256": "0ab130c9c8437891d07838283c3f8cda4a1e9521f5b0ddca42f3e0217c487fa2",
+      "bytes": 173097,
+      "sha256": "05279a1370fc86289904b412fbe49d265ce2b51dde56dab807f3922b8e2da404",
       "source": "social-preview/template.html rendered by scripts/marketing/capture.mjs at 1280x640, using the screenshots above"
     }
   ]

@@ -8,13 +8,17 @@
 //
 // Screenshots: writes a fictional history (demo-history.mjs) into a new temp
 // dir, runs the normal builders against it with VIBESTATS_DATA_DIR and
-// HOME=/home/demo, then opens combined-dashboard.html in headless Chromium.
+// HOME=/home/demo, then opens combined-dashboard.html in headless Chromium,
+// once with the OS set to dark and once set to light. Dark shots keep their
+// plain names; light shots get a `-light` suffix.
 // Your own ~/.claude, ~/.codex, ~/.gemini and ~/.vibestats are never read.
 //
-// Needs Playwright with Chromium. It is not a dependency of this repo: install
-// it globally (`npm i -g playwright && npx playwright install chromium`) or
-// run with NODE_PATH pointing at a node_modules that has playwright or
-// playwright-core with its matching browser downloaded.
+// Needs Playwright. It is not a dependency of this repo: install it globally
+// (`npm i -g playwright && npx playwright install chromium`), run with
+// NODE_PATH pointing at a node_modules that has playwright or playwright-core,
+// or set PLAYWRIGHT_MODULE to the package directory. When Playwright's own
+// Chromium build is missing, it falls back to CHROMIUM_PATH if set, then to
+// an installed Google Chrome (headless).
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -38,6 +42,7 @@ const CLOCK = new Date(`${SNAPSHOT_DATE}T16:00:00`);
 
 function loadPlaywright() {
   const require = createRequire(import.meta.url);
+  if (process.env.PLAYWRIGHT_MODULE) return require(process.env.PLAYWRIGHT_MODULE);
   for (const name of ['playwright', 'playwright-core']) {
     try { return require(name); } catch { /* next */ }
   }
@@ -76,19 +81,46 @@ async function toWebp(pngBuffer, file) {
   fs.unlinkSync(tmp);
 }
 
+// The dashboard follows prefers-color-scheme unless its toggle pins a theme,
+// and a fresh browser context has nothing pinned, so emulating the OS setting
+// is enough to get each theme.
+const THEMES = [
+  { scheme: 'dark', suffix: '' },
+  { scheme: 'light', suffix: '-light' },
+];
+
+async function launchBrowser(chromium) {
+  if (process.env.CHROMIUM_PATH) return chromium.launch({ executablePath: process.env.CHROMIUM_PATH });
+  try {
+    return await chromium.launch();
+  } catch (e) {
+    if (!/Executable doesn't exist/.test(String(e && e.message))) throw e;
+    console.log("Playwright's Chromium build is missing; using installed Google Chrome (headless).");
+    return chromium.launch({ channel: 'chrome' });
+  }
+}
+
 async function captureScreenshots(browser) {
   const dataDir = buildDemoDashboards();
   fs.mkdirSync(SHOTS, { recursive: true });
-  const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: SCALE, colorScheme: 'dark' });
+  const shots = [];
+  for (const theme of THEMES) shots.push(...await captureTheme(browser, dataDir, theme));
+  fs.rmSync(dataDir, { recursive: true, force: true });
+  return shots;
+}
+
+async function captureTheme(browser, dataDir, { scheme, suffix }) {
+  const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: SCALE, colorScheme: scheme });
   const page = await context.newPage();
   await page.clock.setFixedTime(CLOCK);
   await page.goto(pathToFileURL(path.join(dataDir, 'combined-dashboard.html')).href);
   await page.waitForSelector('#cells .cell');
   const shots = [];
-  const save = async (name, buffer, alt) => {
+  const save = async (base, buffer, alt) => {
+    const name = base + suffix;
     const file = path.join(SHOTS, `${name}.webp`);
     await toWebp(buffer, file);
-    shots.push({ name, file, alt });
+    shots.push({ name, file, alt: `${alt} ${scheme === 'light' ? 'Light' : 'Dark'} theme.` });
     console.log('wrote', path.relative(CODE_ROOT, file));
   };
 
@@ -96,7 +128,7 @@ async function captureScreenshots(browser) {
     'Combined dashboard: stat cards for active days, streaks, sessions, tokens, API cost, subscription paid and value multiple, above a year-long activity heatmap.');
 
   await save('activity-heatmap', await page.locator('.heatmap-wrap').screenshot(),
-    'Activity heatmap from January to October, one square per day, darker green on days with more sessions.');
+    'Activity heatmap from January to October, one square per day, a stronger green on days with more sessions.');
 
   // Per-day breakdown: open the busiest weekday in the last month.
   const busiest = await page.evaluate(() => {
@@ -121,7 +153,6 @@ async function captureScreenshots(browser) {
     'Models table with messages, input, output, cache reads and writes and API cost per model, above the top projects table.');
 
   await context.close();
-  fs.rmSync(dataDir, { recursive: true, force: true });
   return shots;
 }
 
@@ -167,6 +198,7 @@ function writeManifest() {
       const size = name.endsWith('.png') ? pngSize(file) : webpSize(file);
       entries.push({
         file: path.relative(OUT, file),
+        ...(dir === SHOTS ? { theme: /-light\.webp$/.test(name) ? 'light' : 'dark' } : {}),
         width: size.width,
         height: size.height,
         bytes: fs.statSync(file).size,
@@ -175,7 +207,7 @@ function writeManifest() {
       });
     }
   };
-  describe(SHOTS, `combined-dashboard.html built by scripts/build-all.sh from the fictional history in scripts/marketing/demo-history.mjs (snapshot ${SNAPSHOT_DATE}), captured by scripts/marketing/capture.mjs in headless Chromium at ${VIEWPORT.width}x${VIEWPORT.height}, scale ${SCALE}`);
+  describe(SHOTS, `combined-dashboard.html built by scripts/build-all.sh from the fictional history in scripts/marketing/demo-history.mjs (snapshot ${SNAPSHOT_DATE}), captured by scripts/marketing/capture.mjs in headless Chromium at ${VIEWPORT.width}x${VIEWPORT.height}, scale ${SCALE}, with prefers-color-scheme set to the listed theme`);
   describe(SOCIAL, 'social-preview/template.html rendered by scripts/marketing/capture.mjs at 1280x640, using the screenshots above');
   const manifest = {
     generated: new Date().toISOString().slice(0, 10),
@@ -188,7 +220,7 @@ function writeManifest() {
 
 const mode = process.argv[2] || 'all';
 const { chromium } = loadPlaywright();
-const browser = await chromium.launch();
+const browser = await launchBrowser(chromium);
 try {
   if (mode === 'all' || mode === 'shots') await captureScreenshots(browser);
   if (mode === 'all' || mode === 'social') await renderSocialPreviews(browser);
