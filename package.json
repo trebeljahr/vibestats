@@ -20,7 +20,7 @@
   "scripts": {
     "dev": "vite",
     "dev:dashboard": "vite",
-    "dev:site": "npm --prefix site run dev",
+    "dev:site": "pnpm --dir site dev",
     "snapshot": "bash scripts/snapshot.sh",
     "build": "bash scripts/build-all.sh",
     "open": "bash scripts/open.sh",
@@ -30,9 +30,9 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "release": "pnpm run release:patch",
-    "release:patch": "node scripts/release-prep.mjs && node scripts/release-bump.mjs patch && npm run _release:finish",
-    "release:minor": "node scripts/release-prep.mjs && node scripts/release-bump.mjs minor && npm run _release:finish",
-    "release:major": "node scripts/release-prep.mjs && node scripts/release-bump.mjs major && npm run _release:finish",
+    "release:patch": "node scripts/release-prep.mjs && node scripts/release-bump.mjs patch && pnpm run _release:finish",
+    "release:minor": "node scripts/release-prep.mjs && node scripts/release-bump.mjs minor && pnpm run _release:finish",
+    "release:major": "node scripts/release-prep.mjs && node scripts/release-bump.mjs major && pnpm run _release:finish",
     "_release:finish": "git push --follow-tags && npm publish --provenance --access public && npm install -g .",
     "privacy:check": "node scripts/privacy-check.js",
     "prepack": "node scripts/privacy-check.js",
@@ -64,9 +64,5 @@
   "devDependencies": {
     "@tauri-apps/cli": "^2.1.0",
     "vite": "^6.4.3"
-  },
-  "overrides": {
-    "postcss": "8.5.28",
-    "nanoid": "3.3.18"
   }
 }

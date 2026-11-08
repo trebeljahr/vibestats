@@ -1,0 +1,5 @@
+# site/ is its own pnpm project, separate from the CLI at the repo root.
+allowBuilds:
+  esbuild: true
+overrides:
+  mdast-util-to-markdown: 2.1.2

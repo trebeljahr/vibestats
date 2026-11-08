@@ -3,6 +3,8 @@ node_modules/
 build/
 *.log
 *.tgz
+# pnpm only (root and site/): a stray `npm install` must not bring back a second lockfile.
+package-lock.json
 
 # Claude Code per-clone state: launch configs, worktrees, session caches.
 # Per-user / per-machine — never shared.

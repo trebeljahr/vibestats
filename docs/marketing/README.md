@@ -29,9 +29,9 @@ GitHub takes the social preview under Settings → General → Social preview. T
 ## How they are made
 
 ```bash
-npm run marketing:capture              # screenshots, then social cards, then manifest.json
-npm run marketing:capture -- shots     # screenshots only
-npm run marketing:capture -- social    # social cards only (reuses the screenshots)
+pnpm marketing:capture                 # screenshots, then social cards, then manifest.json
+pnpm marketing:capture shots           # screenshots only
+pnpm marketing:capture social          # social cards only (reuses the screenshots)
 ```
 
 [`scripts/marketing/capture.mjs`](../../scripts/marketing/capture.mjs) does this:

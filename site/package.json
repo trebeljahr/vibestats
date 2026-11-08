@@ -29,7 +29,5 @@
   "engines": {
     "node": ">=20"
   },
-  "overrides": {
-    "mdast-util-to-markdown": "2.1.2"
-  }
+  "packageManager": "pnpm@11.25.0"
 }

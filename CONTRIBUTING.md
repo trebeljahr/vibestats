@@ -11,21 +11,21 @@ Transcripts hold everything typed into a tool, including pasted secrets. Do not 
 ```bash
 git clone https://github.com/trebeljahr/vibestats
 cd vibestats
-npm ci
+pnpm install
 git config core.hooksPath .githooks       # history privacy check before every push
 ```
 
 Useful commands:
 
 ```bash
-npm run dev                               # dashboard dev server (VIBESTATS_FIXTURE=1 for fictional data)
-npm run privacy:check                     # tracked files must not contain private paths
+pnpm dev                                  # dashboard dev server (VIBESTATS_FIXTURE=1 for fictional data)
+pnpm privacy:check                        # tracked files must not contain private paths
 
 # Build every dashboard from a generated fictional history instead of your own:
 node scripts/marketing/demo-history.mjs /tmp/vs-demo
 HOME=/home/demo VIBESTATS_DATA_DIR=/tmp/vs-demo bash scripts/build-all.sh
 open /tmp/vs-demo/combined-dashboard.html   # xdg-open on Linux
-npm run tauri:dev                         # desktop app (needs Rust)
+pnpm tauri:dev                            # desktop app (needs Rust)
 ```
 
 ## Before you open a pull request

@@ -58,7 +58,7 @@ gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD
 Three commands. Works once the one-time setup is done.
 
 ```bash
-npm run release:patch      # 0.1.0 → 0.1.1
+pnpm release:patch         # 0.1.0 → 0.1.1
 # or release:minor, release:major
 ```
 
@@ -131,10 +131,10 @@ vibestats help
 brew uninstall vibestats
 
 # Tauri (dev build — opens the app)
-npm run tauri:dev
+pnpm tauri:dev
 
 # Tauri (release build — produces DMG in src-tauri/target/release/bundle/)
-npm run tauri:build
+pnpm tauri:build
 ```
 
 ## What goes where

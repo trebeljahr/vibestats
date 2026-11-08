@@ -6,7 +6,7 @@ Snapshots copy locally available tool data. Missing sources are skipped. Refresh
 
 The source repository and npm package exclude snapshots, aggregates, generated dashboards, pricing configuration, project aliases, pending merge decisions, credentials and private backups. Ignore rules only affect untracked files. Earlier Git commits and branches require separate review before publication.
 
-`npm run privacy:check` and the packaging guard catch known private paths and selected user-directory patterns. These checks are defense in depth, not a complete secret scan. Only fictional fixtures belong in source control. The public demo is generated from a fictional fixture rather than personal usage.
+`pnpm privacy:check` and the packaging guard catch known private paths and selected user-directory patterns. These checks are defense in depth, not a complete secret scan. Only fictional fixtures belong in source control. The public demo is generated from a fictional fixture rather than personal usage.
 
 `vibestats serve` is loopback-only and serves named dashboard HTML files. It does not serve raw snapshots, JSON configuration, symlinks or arbitrary paths. Other processes running as the same user remain trusted; the OS account is the local security boundary.
 

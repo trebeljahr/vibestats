@@ -2,9 +2,9 @@
 // Rebuilds the README screenshots and the GitHub social-preview cards in
 // docs/marketing/ from fictional data.
 //
-//   npm run marketing:capture              # screenshots + social previews
-//   npm run marketing:capture -- shots     # screenshots only
-//   npm run marketing:capture -- social    # social previews only
+//   pnpm marketing:capture                 # screenshots + social previews
+//   pnpm marketing:capture shots           # screenshots only
+//   pnpm marketing:capture social          # social previews only
 //
 // Screenshots: writes a fictional history (demo-history.mjs) into a new temp
 // dir, runs the normal builders against it with VIBESTATS_DATA_DIR and

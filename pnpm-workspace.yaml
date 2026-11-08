@@ -2,8 +2,6 @@ allowBuilds:
   esbuild: true
 verifyDepsBeforeRun: false
 strictDepBuilds: false
-# npm reads the "overrides" field in package.json; pnpm 11+ reads only this one.
-# Keep the two in sync.
 overrides:
   postcss@8: 8.5.28
   nanoid@3: 3.3.18

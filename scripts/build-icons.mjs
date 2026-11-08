@@ -13,7 +13,7 @@
  * Output lands directly under src-tauri/ because tauri.conf.json's bundle.icon
  * paths resolve relative to that directory; same for trayIcon.iconPath and the
  * include_bytes!("../icons/32x32.png") in src/lib.rs. Only icon.svg is tracked
- * in git — generated artifacts are .gitignored and rebuilt locally (`npm run
+ * in git — generated artifacts are .gitignored and rebuilt locally (`pnpm
  * icons`) and in CI (.github/workflows/ci.yml installs the deps).
  *
  * Requires `rsvg-convert` (brew install librsvg / apt install librsvg2-bin)

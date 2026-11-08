@@ -47,7 +47,7 @@ cd vibestats
 ./install.sh                       # snapshot + build
 ./scripts/open.sh                  # open combined dashboard
 # or  ./scripts/serve.sh           # localhost server
-# or  npm run tauri:dev            # desktop app dev mode
+# or  pnpm tauri:dev               # desktop app dev mode
 ```
 
 ## What you get
@@ -206,13 +206,13 @@ Snapshots are dated dirs; nothing is destructive. Keep them out of git: they hol
 
 `pnpm dev` serves the dashboard from your **live** data (the dev server runs the live build on startup; the Refresh button re-runs it). Set `VIBESTATS_FIXTURE=1` to use the checked-in fictional `dev/dashboard-preview/sample-payload.json` instead — useful for working on the UI with no local history.
 
-`npm run marketing:capture` rebuilds the README screenshots and the social preview cards in [`docs/marketing/`](docs/marketing/) from a generated fictional history. It never reads your own tool dirs. It needs Playwright with Chromium (see [docs/marketing/README.md](docs/marketing/README.md)).
+`pnpm marketing:capture` rebuilds the README screenshots and the social preview cards in [`docs/marketing/`](docs/marketing/) from a generated fictional history. It never reads your own tool dirs. It needs Playwright with Chromium (see [docs/marketing/README.md](docs/marketing/README.md)).
 
 ## Keep personal history local
 
 New installations use `~/.vibestats`; `VIBESTATS_DATA_DIR` selects another private directory. Existing clones with `pricing.json` keep their data in place. Source discovery uses the current user's home directory. Missing tool installations are skipped during snapshots. Snapshot refreshes preserve files that disappeared from the source.
 
-Run `npm run privacy:check` before committing or packaging source. This checks tracked file paths and selected private-path patterns; it is not a complete secret scanner. Generated state, including `pending-merges.json`, must remain ignored. Never force-add usage files or push old branches containing them.
+Run `pnpm privacy:check` before committing or packaging source. This checks tracked file paths and selected private-path patterns; it is not a complete secret scanner. Generated state, including `pending-merges.json`, must remain ignored. Never force-add usage files or push old branches containing them.
 
 Public demos use fictional data. Redacted dashboards still contain activity and cost information: review each file before sharing. Never deploy the repository or data directory as a website.
 
