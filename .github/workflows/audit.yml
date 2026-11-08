@@ -55,6 +55,10 @@ jobs:
             cargo install cargo-audit --locked
           fi
 
+      # Known warnings (unmaintained/unsound, not vulnerabilities, so they do
+      # not fail the run): glib 0.18 + proc-macro-error via gtk-rs 0.18 on
+      # Linux, and the unic-* crates via urlpattern 0.3 in tauri-utils. All
+      # come from Tauri itself and clear when Tauri moves off those versions.
       - name: cargo audit
         working-directory: src-tauri
         run: cargo audit
