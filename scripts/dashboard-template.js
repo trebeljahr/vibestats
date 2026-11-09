@@ -32,6 +32,16 @@ const PRICING = DATA.pricing;
     });
   }
   window.addEventListener('storage', (e) => { if (e.key === KEY) apply(read()); });
+  // A page that embeds the dashboard (the landing page's demo) can match its
+  // own theme: postMessage({ vibestatsTheme: 'light' | 'dark' | 'system' }).
+  // A sandboxed frame cannot see the parent's theme, and prefers-color-scheme
+  // inside it reports the OS, not the site's toggle. Only the direct parent is
+  // heard, only these three values count, and nothing is stored.
+  window.addEventListener('message', (e) => {
+    if (window.parent === window || e.source !== window.parent) return;
+    const choice = e.data && e.data.vibestatsTheme;
+    if (choice === 'light' || choice === 'dark' || choice === 'system') apply(choice);
+  });
   // Without storage the <head> script found nothing either, so the page is on
   // the system theme and "system" is the honest state to show.
   const pinned = root.getAttribute('data-theme');

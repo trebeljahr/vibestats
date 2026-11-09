@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { DemoFrame } from "@/components/demo-frame";
 
 type Feature = {
   title: string;
@@ -119,11 +120,10 @@ function Screenshot(): ReactNode {
               dashboard.html
             </span>
           </div>
-          <iframe
+          <DemoFrame
             src="/demo/index.html"
             title="Vibestats dashboard with fictional usage data"
             className="block h-[620px] w-full"
-            sandbox="allow-scripts"
           />
         </div>
       </div>
