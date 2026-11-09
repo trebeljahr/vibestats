@@ -13,4 +13,4 @@ To prepare a dashboard for sharing, run `vibestats redact`. For coarser dates, u
 
 Review the generated files before sharing. Project names are pseudonymized, but usage totals, costs and model names remain. Redaction is not a guarantee of anonymity. Never deploy the data directory or repository root. Copy only individually reviewed HTML files into a new, otherwise empty directory and use an authenticated host.
 
-The public demonstration uses fictional data. It never reads your local history.
+The public demonstration uses fictional data. It never reads your local history. In a source checkout, `pnpm demo:build` rebuilds it. The script writes a seeded fictional history into a temporary directory and builds the dashboards there with `HOME=/home/demo`. The header of the demo says "fictional demo data" and shows no age warning.

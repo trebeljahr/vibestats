@@ -8,10 +8,13 @@
 // generated from a fixed seed. Every project, path, prompt and number is
 // invented. Nothing here reads ~/.claude, ~/.codex, ~/.gemini or ~/.vibestats.
 // Point the normal builders at the result with VIBESTATS_DATA_DIR (and
-// HOME=/home/demo so project names render without a home prefix).
+// HOME=/home/demo so project names render without a home prefix), or call
+// buildDemoDashboards(), which does both in a new temp dir.
 
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const CODE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -255,6 +258,24 @@ export function writeDemoHistory(dataDir) {
     }
   }
   return counts;
+}
+
+// Writes the history into a new temp dir and runs scripts/build-all.sh on it
+// with VIBESTATS_DATA_DIR pointing there and HOME=/home/demo, so no builder
+// can reach the caller's own tool dirs. Returns the dir; the caller removes it.
+export function buildDemoDashboards() {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vibestats-demo-'));
+  const counts = writeDemoHistory(dataDir);
+  console.log('fictional history:', counts);
+  const env = { ...process.env, HOME: DEMO_HOME, VIBESTATS_DATA_DIR: dataDir };
+  for (const key of ['VIBESTATS_LIVE', 'GOOSE_PATH_ROOT', 'CLAUDE_SESSION_KEY']) delete env[key];
+  const r = spawnSync('bash', [path.join(CODE_ROOT, 'scripts', 'build-all.sh')], { env, encoding: 'utf8' });
+  if (r.status !== 0) {
+    process.stderr.write(r.stdout + r.stderr);
+    fs.rmSync(dataDir, { recursive: true, force: true });
+    throw new Error('build-all.sh failed on the fictional history');
+  }
+  return dataDir;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

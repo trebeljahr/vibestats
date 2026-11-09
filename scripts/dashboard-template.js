@@ -52,13 +52,16 @@ const PRICING = DATA.pricing;
 // copy, or the live dirs read at build time), and nothing re-reads it while the
 // page is open — so state the age loudly. A stale build looks identical to a
 // current one otherwise, which is how a months-old view goes unnoticed.
+// The public demo (summary.demo, set only by scripts/marketing/build-demo.mjs)
+// is fictional data frozen at its snapshot day: it says so instead, because
+// "refresh" means nothing to a visitor and the badge would grow every day.
 (function renderSnapshotMeta() {
   const el = document.getElementById('snapshotMeta');
   const s = DATA.summary;
-  const origin = s.live ? 'live' : 'snapshot';
+  const origin = s.demo ? 'fictional demo data, snapshot' : s.live ? 'live' : 'snapshot';
   const parts = [origin + ' ' + s.snapshot, s.firstDay + ' → ' + s.lastDay];
   const ageDays = (() => {
-    if (!s.snapshot) return null;
+    if (s.demo || !s.snapshot) return null;
     const built = Date.parse(s.snapshot + 'T00:00:00');
     if (Number.isNaN(built)) return null;
     const now = new Date();
@@ -241,7 +244,9 @@ const isoDay = d => d.toISOString().slice(0, 10);
 function getRange(val, offset) {
   offset = offset || 0;
   const anchor = DATA.summary.lastDay ? new Date(DATA.summary.lastDay + 'T00:00:00Z') : new Date();
-  const today = new Date();
+  // The demo's "this month" and "this year" are those of its snapshot day, so
+  // the Month view shows October 2026 rather than an empty current month.
+  const today = DATA.summary.demo && DATA.summary.snapshot ? new Date(DATA.summary.snapshot + 'T12:00:00') : new Date();
   if (val === 'all') return { from: null, to: null, label: 'All time', pageable: false };
   if (val === 'this-month') {
     const start = new Date(Date.UTC(today.getFullYear(), today.getMonth() + offset, 1));

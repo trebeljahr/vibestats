@@ -25,6 +25,7 @@ pnpm privacy:check                        # tracked files must not contain priva
 node scripts/marketing/demo-history.mjs /tmp/vs-demo
 HOME=/home/demo VIBESTATS_DATA_DIR=/tmp/vs-demo bash scripts/build-all.sh
 open /tmp/vs-demo/combined-dashboard.html   # xdg-open on Linux
+pnpm demo:build                           # rebuild site/public/demo/index.html from that history
 pnpm tauri:dev                            # desktop app (needs Rust)
 ```
 

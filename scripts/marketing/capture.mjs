@@ -21,13 +21,12 @@
 // an installed Google Chrome (headless).
 
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { writeDemoHistory, DEMO_HOME, SNAPSHOT_DATE } from './demo-history.mjs';
+import { buildDemoDashboards, SNAPSHOT_DATE } from './demo-history.mjs';
 
 const CODE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const OUT = path.join(CODE_ROOT, 'docs', 'marketing');
@@ -58,20 +57,6 @@ function loadPlaywright() {
   }
   console.error('Playwright not found. Install it with `npm i -g playwright && npx playwright install chromium`.');
   process.exit(1);
-}
-
-function buildDemoDashboards() {
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vibestats-demo-'));
-  const counts = writeDemoHistory(dataDir);
-  console.log('fictional history:', counts);
-  const env = { ...process.env, HOME: DEMO_HOME, VIBESTATS_DATA_DIR: dataDir };
-  for (const key of ['VIBESTATS_LIVE', 'GOOSE_PATH_ROOT', 'CLAUDE_SESSION_KEY']) delete env[key];
-  const r = spawnSync('bash', [path.join(CODE_ROOT, 'scripts', 'build-all.sh')], { env, encoding: 'utf8' });
-  if (r.status !== 0) {
-    process.stderr.write(r.stdout + r.stderr);
-    throw new Error('build-all.sh failed on the fictional history');
-  }
-  return dataDir;
 }
 
 async function toWebp(pngBuffer, file) {

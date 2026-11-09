@@ -4,6 +4,8 @@ Screenshots and GitHub social preview cards for vibestats. Every image shows **f
 
 [`manifest.json`](manifest.json) lists every file with its size in pixels and bytes, its SHA-256 and its source.
 
+The public demo on the site, [`site/public/demo/index.html`](../../site/public/demo/index.html), uses the same history. `pnpm demo:build` rebuilds it with [`scripts/marketing/build-demo.mjs`](../../scripts/marketing/build-demo.mjs). That page sets `summary.demo` in its data, so its header says "fictional demo data" and shows no "N days old" badge. Its Month and Year ranges start from the snapshot day, 31 October 2026.
+
 ## Files
 
 | File | Purpose | Pixels | Made |

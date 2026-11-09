@@ -36,7 +36,8 @@
     "_release:finish": "git push --follow-tags && npm publish --provenance --access public && npm install -g .",
     "privacy:check": "node scripts/privacy-check.js",
     "prepack": "node scripts/privacy-check.js",
-    "marketing:capture": "node scripts/marketing/capture.mjs"
+    "marketing:capture": "node scripts/marketing/capture.mjs",
+    "demo:build": "node scripts/marketing/build-demo.mjs"
   },
   "keywords": [
     "claude",

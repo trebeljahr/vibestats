@@ -208,6 +208,8 @@ Snapshots are dated dirs; nothing is destructive. Keep them out of git: they hol
 
 `pnpm marketing:capture` rebuilds the README screenshots and the social preview cards in [`docs/marketing/`](docs/marketing/) from a generated fictional history. It never reads your own tool dirs. It needs Playwright with Chromium (see [docs/marketing/README.md](docs/marketing/README.md)).
 
+`pnpm demo:build` rebuilds the public demo, `site/public/demo/index.html`, from the same fictional history. It needs no browser.
+
 ## Keep personal history local
 
 New installations use `~/.vibestats`; `VIBESTATS_DATA_DIR` selects another private directory. Existing clones with `pricing.json` keep their data in place. Source discovery uses the current user's home directory. Missing tool installations are skipped during snapshots. Snapshot refreshes preserve files that disappeared from the source.
