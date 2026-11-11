@@ -1,0 +1,39 @@
+<!doctype html>
+<!--
+  Text-free og:image card, 1280x672 CSS px, rendered at 2x and downscaled to
+  1200x630 (og-clean.png) by scripts/marketing/capture.mjs.
+  The background of template.html?v=b with a crop of the dashboard capture
+  (../screenshots/dashboard-overview.webp, fictional data): the twelve stat
+  cards and the activity heatmap, centred in a .shot frame.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>vibestats og:image, clean</title>
+<style>
+  :root { --bg: #0d1117; --border: #30363d; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; height: 672px; overflow: hidden; }
+  body { background: var(--bg); position: relative; }
+  /* #b's glow; "at 50% -10%" of the 640 card is -64 px, re-centred for 672. */
+  .bg { position: absolute; inset: 0; background: radial-gradient(1000px 420px at 50% -48px, rgba(31,111,235,.18), transparent 65%), var(--bg); }
+  .shot { position: absolute; overflow: hidden; border: 1px solid var(--border); border-radius: 14px;
+          box-shadow: 0 30px 80px rgba(0,0,0,.55); background: var(--bg); }
+  .shot img { position: absolute; display: block; left: 0; }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="shot" id="shot"><img id="img" src="../screenshots/dashboard-overview.webp" alt=""></div>
+<script>
+  // The capture is 2560 px wide. Stat cards span x 64..2496 and y 259..752,
+  // the heatmap panel ends at y 1422, and the Range row above the cards ends
+  // at y 225. The crop keeps 30 px of page around that block on every side.
+  const SRC_W = 2560, x0 = 34, x1 = 2526, y0 = 229, y1 = 1452, w = 1120;
+  const scale = w / (x1 - x0), h = Math.round((y1 - y0) * scale);
+  const shot = document.getElementById('shot'), img = document.getElementById('img');
+  Object.assign(shot.style, { width: w + 'px', height: h + 'px', left: (1280 - w) / 2 + 'px', top: Math.round((672 - h) / 2) + 'px' });
+  Object.assign(img.style, { width: SRC_W * scale + 'px', left: -(x0 * scale) + 'px', top: -(y0 * scale) + 'px' });
+</script>
+</body>
+</html>

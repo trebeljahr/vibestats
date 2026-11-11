@@ -5,6 +5,7 @@
 //   pnpm marketing:capture                 # screenshots + social previews
 //   pnpm marketing:capture shots           # screenshots only
 //   pnpm marketing:capture social          # social previews only
+//   pnpm marketing:capture og              # og:image cards only
 //
 // Screenshots: writes a fictional history (demo-history.mjs) into a new temp
 // dir, runs the normal builders against it with VIBESTATS_DATA_DIR and
@@ -12,6 +13,13 @@
 // once with the OS set to dark and once set to light. Dark shots keep their
 // plain names; light shots get a `-light` suffix.
 // Your own ~/.claude, ~/.codex, ~/.gemini and ~/.vibestats are never read.
+//
+// Social previews: the three 1280x640 GitHub cards from template.html, then
+// the two 1200x630 og:image cards, og-wordmark.png (card B with its text) and
+// og-clean.png (og-clean.html, no text). The og:image cards are laid out at
+// 1280x672 CSS px, the same 1.905:1 shape as 1200x630, shot at 2x and
+// downscaled to exactly 1200x630 with ImageMagick (`magick`), which must be
+// installed.
 //
 // Needs Playwright. It is not a dependency of this repo: install it globally
 // (`npm i -g playwright && npx playwright install chromium`), run with
@@ -158,6 +166,41 @@ async function renderSocialPreviews(browser) {
   return out;
 }
 
+// og:image cards: [name, page in SOCIAL, query, override CSS]. og-wordmark keeps
+// card B's 1280x640 layout, moves it down 16 px and stretches only its
+// background 16 px past the top and bottom, so every margin stays as designed.
+// "at 50% -10%" of the 640 box is -64 px; the stretched box starts 16 px higher.
+const OG_CARDS = [
+  ['og-wordmark', 'template.html', 'v=b', `html, body { height: 672px !important; }
+    #b { top: 16px; overflow: visible !important; clip-path: inset(-16px 0); z-index: 0; background: none !important; }
+    #b::before { content: ""; position: absolute; left: 0; right: 0; top: -16px; bottom: -16px; z-index: -1;
+      background: radial-gradient(1000px 420px at 50% -48px, rgba(31,111,235,.18), transparent 65%), #0d1117; }
+    #b { bottom: auto; height: 640px; }`],
+  ['og-clean', 'og-clean.html', '', ''],
+];
+
+async function renderOgCards(browser) {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 672 }, deviceScaleFactor: 2 });
+  const page = await context.newPage();
+  for (const [name, html, query, css] of OG_CARDS) {
+    await page.goto(pathToFileURL(path.join(SOCIAL, html)).href + (query ? `?${query}` : ''), { waitUntil: 'networkidle' });
+    if (css) await page.addStyleTag({ content: css });
+    await page.evaluate(() => document.fonts.ready);
+    await page.evaluate(() => Promise.all([...document.images].map(img => img.decode().catch(() => {}))));
+    const file = path.join(SOCIAL, `${name}.png`);
+    // The date and time chunks are left out so an unchanged card keeps its SHA-256.
+    try {
+      execFileSync('magick', ['png:-', '-resize', '1200x630!', '-define', 'png:exclude-chunks=date,time', file],
+        { input: await page.screenshot() });
+    } catch (e) {
+      if (e.code === 'ENOENT') throw new Error('The og:image cards need ImageMagick: `brew install imagemagick`.');
+      throw e;
+    }
+    console.log('wrote', path.relative(CODE_ROOT, file));
+  }
+  await context.close();
+}
+
 function pngSize(file) {
   const b = fs.readFileSync(file);
   return { width: b.readUInt32BE(16), height: b.readUInt32BE(20) };
@@ -188,12 +231,14 @@ function writeManifest() {
         height: size.height,
         bytes: fs.statSync(file).size,
         sha256: crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'),
-        source: how,
+        source: typeof how === 'function' ? how(name) : how,
       });
     }
   };
   describe(SHOTS, `combined-dashboard.html built by scripts/build-all.sh from the fictional history in scripts/marketing/demo-history.mjs (snapshot ${SNAPSHOT_DATE}), captured by scripts/marketing/capture.mjs in headless Chromium at ${VIEWPORT.width}x${VIEWPORT.height}, scale ${SCALE}, with prefers-color-scheme set to the listed theme`);
-  describe(SOCIAL, 'social-preview/template.html rendered by scripts/marketing/capture.mjs at 1280x640, using the screenshots above');
+  describe(SOCIAL, name => name.startsWith('og-')
+    ? `social-preview/${name === 'og-clean.png' ? 'og-clean.html' : 'template.html?v=b'} rendered by scripts/marketing/capture.mjs at 1280x672, scale 2, downscaled to 1200x630 with ImageMagick`
+    : 'social-preview/template.html rendered by scripts/marketing/capture.mjs at 1280x640, using the screenshots above');
   const manifest = {
     generated: new Date().toISOString().slice(0, 10),
     data: 'Fictional. Every project name, path and number comes from a seeded generator, not from real usage.',
@@ -209,6 +254,7 @@ const browser = await launchBrowser(chromium);
 try {
   if (mode === 'all' || mode === 'shots') await captureScreenshots(browser);
   if (mode === 'all' || mode === 'social') await renderSocialPreviews(browser);
+  if (mode === 'all' || mode === 'social' || mode === 'og') await renderOgCards(browser);
   writeManifest();
 } finally {
   await browser.close();

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-06",
+  "generated": "2026-11-11",
   "data": "Fictional. Every project name, path and number comes from a seeded generator, not from real usage.",
   "files": [
     {
@@ -73,6 +73,22 @@
       "bytes": 137236,
       "sha256": "7edafc38445901b2b2669971b280ead3190c8011e4a3c6ce8311271ee1151624",
       "source": "combined-dashboard.html built by scripts/build-all.sh from the fictional history in scripts/marketing/demo-history.mjs (snapshot 2026-10-31), captured by scripts/marketing/capture.mjs in headless Chromium at 1280x900, scale 2, with prefers-color-scheme set to the listed theme"
+    },
+    {
+      "file": "social-preview/og-clean.png",
+      "width": 1200,
+      "height": 630,
+      "bytes": 225224,
+      "sha256": "7e275efc5f26c51fbb78fbb75fbaf4060f957f7f22a9d695defca741abe036d6",
+      "source": "social-preview/og-clean.html rendered by scripts/marketing/capture.mjs at 1280x672, scale 2, downscaled to 1200x630 with ImageMagick"
+    },
+    {
+      "file": "social-preview/og-wordmark.png",
+      "width": 1200,
+      "height": 630,
+      "bytes": 249261,
+      "sha256": "e5d7d249d290c40b9fc85ffd2e1f5ebf0218eaf1a6484af3fffaf7a7707db911",
+      "source": "social-preview/template.html?v=b rendered by scripts/marketing/capture.mjs at 1280x672, scale 2, downscaled to 1200x630 with ImageMagick"
     },
     {
       "file": "social-preview/social-preview-a.png",

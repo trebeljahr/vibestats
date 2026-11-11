@@ -22,6 +22,9 @@ The public demo on the site, [`site/public/demo/index.html`](../../site/public/d
 | `social-preview/social-preview-b.png` | Option B: large centred wordmark, tagline, supported tools, heatmap ribbon. | 1280×640 | 2026-11-07 |
 | `social-preview/social-preview-c.png` | Option C: light background, heatmap card on top, wordmark and tagline below. | 1280×640 | 2026-11-07 |
 | `social-preview/template.html` | Source of all three cards. `?v=a`, `?v=b` or `?v=c` picks the variant. | 1280×640 | 2026-11-06 |
+| `social-preview/og-wordmark.png` | og:image. Option B laid out at 1.91:1: its background runs 16 px further at the top and bottom, every margin stays. | 1200×630 | 2026-11-11 |
+| `social-preview/og-clean.png` | og:image without text. The stat cards and heatmap from `dashboard-overview.webp`, framed on option B's background. | 1200×630 | 2026-11-11 |
+| `social-preview/og-clean.html` | Source of `og-clean.png`. | 1280×672 | 2026-11-11 |
 | `social-preview/fonts/` | Inter (Regular, SemiBold) and JetBrains Mono, unmodified, under the SIL Open Font License ([OFL.txt](social-preview/fonts/OFL.txt)). | — | — |
 
 The README shows the light or dark screenshot to match the reader's GitHub theme. It uses a `<picture>` element with `prefers-color-scheme` sources; the dark shot is the fallback where `<picture>` is not supported.
@@ -34,6 +37,7 @@ GitHub takes the social preview under Settings → General → Social preview. T
 pnpm marketing:capture                 # screenshots, then social cards, then manifest.json
 pnpm marketing:capture shots           # screenshots only
 pnpm marketing:capture social          # social cards only (reuses the screenshots)
+pnpm marketing:capture og              # og:image cards only
 ```
 
 [`scripts/marketing/capture.mjs`](../../scripts/marketing/capture.mjs) does this:
@@ -42,7 +46,8 @@ pnpm marketing:capture social          # social cards only (reuses the screensho
 2. Runs `scripts/build-all.sh` on it with `VIBESTATS_DATA_DIR` set to that directory and `HOME=/home/demo`. Your own `~/.claude`, `~/.codex`, `~/.gemini` and `~/.vibestats` are not read.
 3. Opens `combined-dashboard.html` in headless Chromium at 1280×900 (the desktop app's window size), scale 2, with the clock set to the snapshot day. It does this twice: once with the system colour scheme set to dark, once set to light. Light shots get a `-light` suffix, and `manifest.json` records the theme of each screenshot. Saves WebP at quality 90 with `cwebp`.
 4. Renders `social-preview/template.html` at 1280×640 for each variant.
+5. Renders the two og:image cards at 1280×672 (the same 1.905:1 shape as 1200×630), scale 2, and downscales them to exactly 1200×630 with ImageMagick.
 
-It needs Playwright, which is not a dependency of this repo. Install it globally (`npm i -g playwright && npx playwright install chromium`), set `NODE_PATH` to a `node_modules` that has `playwright` or `playwright-core`, or set `PLAYWRIGHT_MODULE` to the package directory. If Playwright's own Chromium build is missing, the script uses `CHROMIUM_PATH` when set, and otherwise an installed Google Chrome in headless mode. `cwebp` comes from the `webp` package (`brew install webp`).
+It needs Playwright, which is not a dependency of this repo. Install it globally (`npm i -g playwright && npx playwright install chromium`), set `NODE_PATH` to a `node_modules` that has `playwright` or `playwright-core`, or set `PLAYWRIGHT_MODULE` to the package directory. If Playwright's own Chromium build is missing, the script uses `CHROMIUM_PATH` when set, and otherwise an installed Google Chrome in headless mode. `cwebp` comes from the `webp` package (`brew install webp`), `magick` from ImageMagick (`brew install imagemagick`).
 
 The same data with the same seed gives the same images. Changes to the dashboard template show up in the next capture.
