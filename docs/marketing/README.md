@@ -29,6 +29,12 @@ The public demo on the site, [`site/public/demo/index.html`](../../site/public/d
 
 The README shows the light or dark screenshot to match the reader's GitHub theme. It uses a `<picture>` element with `prefers-color-scheme` sources; the dark shot is the fallback where `<picture>` is not supported.
 
+The site's link preview, `site/app/opengraph-image.jpg` (and the identical `twitter-image.jpg`, each with an `.alt.txt`), is `og-wordmark.png` as JPEG:
+
+```bash
+magick docs/marketing/social-preview/og-wordmark.png -strip -interlace Plane -sampling-factor 4:4:4 -quality 88 site/app/opengraph-image.jpg && cp site/app/opengraph-image.jpg site/app/twitter-image.jpg
+```
+
 GitHub takes the social preview under Settings → General → Social preview. The cards were re-rendered on 2026-11-07 because the dark heatmap's two lowest levels got brighter; a card uploaded before then shows the older colours.
 
 ## How they are made

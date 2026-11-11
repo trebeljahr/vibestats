@@ -8,6 +8,7 @@ import { createRelativeLink } from "fumadocs-ui/mdx";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getMDXComponents } from "@/components/mdx";
+import { SOCIAL_IMAGE, TWITTER_IMAGE } from "@/lib/social-image";
 import { source } from "@/lib/source";
 
 type PageParams = { slug?: string[] };
@@ -56,11 +57,13 @@ export async function generateMetadata(props: {
       url: page.url,
       title: page.data.title,
       description: page.data.description,
+      images: [SOCIAL_IMAGE],
     },
     twitter: {
       card: "summary_large_image",
       title: page.data.title,
       description: page.data.description,
+      images: [TWITTER_IMAGE],
     },
   };
 }
